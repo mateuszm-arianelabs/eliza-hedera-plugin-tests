@@ -8,3 +8,10 @@ export function formBaseToDisplayUnit(
 ): number {
     return rawBalance / 10 ** decimals;
 }
+
+export function formDisplayToBaseUnit(
+    displayBalance: number,
+    decimals: number
+): number {
+    return displayBalance * 10 ** decimals;
+}

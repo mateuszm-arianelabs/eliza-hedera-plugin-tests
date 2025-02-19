@@ -1,6 +1,7 @@
 import {
     AccountsResponse,
     HTSBalanceResponse,
+    HtsTokenDetails,
     NetworkType,
     TransactionsResponse,
     txReport,
@@ -88,5 +89,14 @@ export class HederaMirrorNodeClient {
         );
 
         return txReport;
+    }
+
+    async getTokenDetails(tokenId: string): Promise<HtsTokenDetails> {
+        const url = `${this.baseUrl}/tokens/${tokenId}`;
+
+        console.log(`URL: ${url}`);
+
+        const response = await fetch(url, { method: "GET" });
+        return response.json();
     }
 }

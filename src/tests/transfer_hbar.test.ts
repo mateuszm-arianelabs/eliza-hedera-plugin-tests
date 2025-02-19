@@ -7,7 +7,7 @@ import * as dotenv from "dotenv";
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("Test HBAR transfer", async () => {
-    await beforeEach(async () => {
+    beforeEach(async () => {
         dotenv.config();
         await wait(3000);
     });

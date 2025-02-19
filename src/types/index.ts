@@ -121,3 +121,46 @@ export type Transaction = {
 export type TransactionsResponse = {
     transactions: Transaction[];
 };
+
+type ProtobufEncodedKey = {
+    _type: "ProtobufEncoded";
+    key: string;
+};
+
+type CustomFees = {
+    created_timestamp: string;
+    fixed_fees: any[];
+    fractional_fees: any[];
+};
+
+export type HtsTokenDetails = {
+    admin_key: ProtobufEncodedKey | null;
+    auto_renew_account: string;
+    auto_renew_period: number;
+    created_timestamp: string;
+    custom_fees: CustomFees;
+    decimals: string;
+    deleted: boolean;
+    expiry_timestamp: number;
+    fee_schedule_key: ProtobufEncodedKey | null;
+    freeze_default: boolean;
+    freeze_key: ProtobufEncodedKey | null;
+    initial_supply: string;
+    kyc_key: ProtobufEncodedKey;
+    max_supply: string;
+    memo: string;
+    metadata: string;
+    metadata_key: ProtobufEncodedKey | null;
+    modified_timestamp: string;
+    name: string;
+    pause_key: ProtobufEncodedKey | null;
+    pause_status: "PAUSED" | "UNPAUSED";
+    supply_key: ProtobufEncodedKey | null;
+    supply_type: "FINITE" | "INFINITE";
+    symbol: string;
+    token_id: string;
+    total_supply: string;
+    treasury_account_id: string;
+    type: "FUNGIBLE_COMMON" | "NON_FUNGIBLE_UNIQUE";
+    wipe_key: ProtobufEncodedKey;
+};
