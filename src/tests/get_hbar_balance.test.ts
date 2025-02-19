@@ -1,0 +1,50 @@
+import { describe, expect, it, beforeEach } from "vitest";
+import { ElizaOSApiClient } from "../utils/elizaApiClient";
+import { ElizaOSPrompt } from "../types";
+import { HederaMirrorNodeClient } from "../utils/hederaMirrorNodeClient";
+import * as dotenv from "dotenv";
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+describe("get_hbar_balance", () => {
+    beforeEach(async () => {
+        dotenv.config();
+        await wait(3000);
+    });
+    it.each([
+        ["0.0.5392887", "What's HBAR balance for 0.0.5392887"],
+        ["0.0.5532256", "How many HBARs has 0.0.5532256"],
+    ])(
+        "balance for %s should be equal to data from Mirror Node API",
+        async (accountId, promptText) => {
+            const elizaOsApiClient = new ElizaOSApiClient(
+                "http://localhost:3000"
+            );
+            const hederaApiClient = new HederaMirrorNodeClient("testnet");
+
+            const agentId = await elizaOsApiClient.getAgentId();
+            const prompt: ElizaOSPrompt = {
+                user: "user",
+                text: promptText,
+            };
+            const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+            let hederaActionBalance: number;
+
+            const match =
+                response[response.length - 1].text.match(/(\d+\.\d+)\s*HBAR/);
+
+            if (match) {
+                hederaActionBalance = parseFloat(match[1]); // match[1] will give us the numeric value
+            } else {
+                throw new Error(
+                    "No match for HBAR balance found in response from ElizaOs Agent."
+                );
+            }
+
+            const mirrorNodeBalance =
+                await hederaApiClient.getHbarBalance(accountId);
+
+            expect(hederaActionBalance).toEqual(mirrorNodeBalance);
+        }
+    );
+});

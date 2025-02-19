@@ -9,5 +9,6 @@ export default defineConfig({
         },
         testTimeout: 30000,
         maxConcurrency: 1,
+        fileParallelism: false,
     },
 });
