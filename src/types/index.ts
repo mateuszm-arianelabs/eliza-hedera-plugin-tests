@@ -147,9 +147,9 @@ export type HtsTokenDetails = {
     freeze_key: ProtobufEncodedKey | null;
     initial_supply: string;
     kyc_key: ProtobufEncodedKey;
-    max_supply: string;
-    memo: string;
-    metadata: string;
+    max_supply: string | null;
+    memo: string | null;
+    metadata: string | null;
     metadata_key: ProtobufEncodedKey | null;
     modified_timestamp: string;
     name: string;
@@ -159,7 +159,7 @@ export type HtsTokenDetails = {
     supply_type: "FINITE" | "INFINITE";
     symbol: string;
     token_id: string;
-    total_supply: string;
+    total_supply: string | null;
     treasury_account_id: string;
     type: "FUNGIBLE_COMMON" | "NON_FUNGIBLE_UNIQUE";
     wipe_key: ProtobufEncodedKey;

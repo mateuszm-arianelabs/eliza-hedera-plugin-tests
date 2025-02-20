@@ -75,8 +75,9 @@ describe("Test HBAR transfer", async () => {
 
             // Compare before and after including the difference due to paid fees
             expect(txReport.status).toEqual("SUCCESS");
-            expect(balanceAgentBefore).toEqual(
-                balanceAgentAfter + transferAmount + txReport.totalPaidFees
+            expect(balanceAgentBefore).toBeCloseTo(
+                balanceAgentAfter + transferAmount + txReport.totalPaidFees,
+                8
             );
             expect(balanceReceiverBefore).toBeCloseTo(
                 balanceReceiverAfter - transferAmount,

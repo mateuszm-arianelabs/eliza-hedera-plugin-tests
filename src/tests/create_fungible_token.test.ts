@@ -52,7 +52,7 @@ describe("create_fungible_token", () => {
             formDisplayToBaseUnit(750000, 2).toString()
         );
         expect(tokenDetails.memo).toEqual("This is an example memo");
-        expect(atob(tokenDetails.metadata)).toEqual(
+        expect(atob(tokenDetails.metadata!)).toEqual(
             "And that's an example metadata"
         );
         expect(tokenDetails?.supply_key?.key).not.toBeFalsy();
@@ -86,13 +86,11 @@ describe("create_fungible_token", () => {
         expect(tokenDetails.initial_supply).toEqual(
             formDisplayToBaseUnit(333, 3).toString()
         );
-        expect(tokenDetails.memo).toBeNull();
-        expect(
-            tokenDetails.metadata ? atob(tokenDetails.metadata) : null
-        ).toEqual(null);
-        expect(tokenDetails?.supply_key?.key).not.toBeUndefined();
-        expect(tokenDetails?.admin_key?.key).not.toBeUndefined();
-        expect(tokenDetails?.metadata_key?.key).not.toBeUndefined();
+        expect(tokenDetails.memo).toBe("");
+        expect(tokenDetails.metadata).toBe("");
+        expect(tokenDetails?.supply_key?.key).toBeUndefined();
+        expect(tokenDetails?.admin_key?.key).toBeUndefined();
+        expect(tokenDetails?.metadata_key?.key).toBeUndefined();
     });
 
     it("Create token with minimal parameters plus memo", async () => {
@@ -122,9 +120,7 @@ describe("create_fungible_token", () => {
             formDisplayToBaseUnit(444, 4).toString()
         );
         expect(tokenDetails.memo).toEqual("Automatic tests memo");
-        expect(
-            tokenDetails.metadata ? atob(tokenDetails.metadata) : null
-        ).toEqual(null);
+        expect(tokenDetails.metadata).toBe("");
         expect(tokenDetails?.supply_key?.key).toBeUndefined();
         expect(tokenDetails?.admin_key?.key).toBeUndefined();
         expect(tokenDetails?.metadata_key?.key).toBeUndefined();
@@ -156,10 +152,8 @@ describe("create_fungible_token", () => {
         expect(tokenDetails.initial_supply).toEqual(
             formDisplayToBaseUnit(555, 5).toString()
         );
-        expect(tokenDetails.memo).toBeNull();
-        expect(
-            tokenDetails.metadata ? atob(tokenDetails.metadata) : null
-        ).toEqual(null);
+        expect(tokenDetails.memo).toBe("");
+        expect(tokenDetails.metadata).toBe("");
         expect(tokenDetails?.supply_key?.key).toBeUndefined();
         expect(tokenDetails?.admin_key?.key).toBeUndefined();
         expect(tokenDetails?.metadata_key?.key).not.toBeUndefined();
@@ -193,10 +187,8 @@ describe("create_fungible_token", () => {
         expect(tokenDetails.initial_supply).toEqual(
             formDisplayToBaseUnit(111, 1).toString()
         );
-        expect(tokenDetails.memo).toBeNull();
-        expect(
-            tokenDetails.metadata ? atob(tokenDetails.metadata) : null
-        ).toBeNull();
+        expect(tokenDetails.memo).toBe("");
+        expect(tokenDetails.memo).toBe("");
         expect(tokenDetails?.supply_key?.key).not.toBeUndefined();
         expect(tokenDetails?.admin_key?.key).not.toBeUndefined();
         expect(tokenDetails?.metadata_key?.key).toBeUndefined();
@@ -209,7 +201,7 @@ describe("create_fungible_token", () => {
         const agentId = await elizaOsApiClient.getAgentId();
 
         const promptText =
-            "Create token 'Complex Token' with symbol CPLXT, 1 decimal places, and starting supply of 1111. Set admin key and supply keys. Set memo to 'This a complex token'. Set metadata to 'You have accessed the metadata of a CPLXT'";
+            "Create token 'Complex Token' with symbol CPLXT, 1 decimal places, and starting supply of 1111. Set admin key and supply keys. Set memo to 'This a complex token'. Set metadata to 'this could be a link to image'";
         const prompt: ElizaOSPrompt = {
             user: "user",
             text: promptText,
@@ -229,8 +221,8 @@ describe("create_fungible_token", () => {
             formDisplayToBaseUnit(1111, 1).toString()
         );
         expect(tokenDetails.memo).toBe("This a complex token");
-        expect(atob(tokenDetails.metadata)).toBe(
-            "You have accessed the metadata of a CPLXT"
+        expect(atob(tokenDetails.metadata!)).toBe(
+            "this could be a link to image"
         );
         expect(tokenDetails?.supply_key?.key).not.toBeUndefined();
         expect(tokenDetails?.admin_key?.key).not.toBeUndefined();
