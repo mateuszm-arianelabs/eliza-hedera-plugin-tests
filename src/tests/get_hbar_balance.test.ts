@@ -9,11 +9,14 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 describe("get_hbar_balance", () => {
     beforeEach(async () => {
         dotenv.config();
-        await wait(3000);
+        await wait(1000);
     });
     it.each([
         ["0.0.5392887", "What's HBAR balance for 0.0.5392887"],
-        ["0.0.5532256", "How many HBARs has 0.0.5532256"],
+        ["0.0.5532256", "How much HBARs has 0.0.5532256"],
+        ["0.0.4515756", "Check HBAR balance of wallet 0.0.4515756"],
+        ["0.0.5533781", "What’s the current HBAR balance of 0.0.5533781?"],
+        ["0.0.5533487", "Please check the balance for 0.0.5533487 account"],
     ])(
         "balance for %s should be equal to data from Mirror Node API",
         async (accountId, promptText) => {
@@ -30,11 +33,12 @@ describe("get_hbar_balance", () => {
             const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
             let hederaActionBalance: number;
 
-            const match =
-                response[response.length - 1].text.match(/(\d+\.\d+)\s*HBAR/);
+            const match = response[response.length - 1].text.match(
+                /(\d+\.\d+|\d+)\s*HBAR/
+            );
 
             if (match) {
-                hederaActionBalance = parseFloat(match[1]); // match[1] will give us the numeric value
+                hederaActionBalance = parseFloat(match[1]);
             } else {
                 throw new Error(
                     "No match for HBAR balance found in response from ElizaOs Agent."

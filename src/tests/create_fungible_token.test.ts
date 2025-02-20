@@ -7,6 +7,19 @@ import { formDisplayToBaseUnit } from "../utils/utils";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const extractTokenId = (text: string) => {
+    const regex = /Token ID:\s*(\d+\.\d+\.\d+)/;
+    const match = text.match(regex);
+
+    if (match) {
+        const tokenId = match[1]; // Extracted Token ID
+        console.log(`Extracted token id: ${tokenId}`);
+        return tokenId;
+    } else {
+        throw new Error("No match for token ID was found in ElizaOS response.");
+    }
+};
+
 describe("create_fungible_token", () => {
     beforeEach(async () => {
         dotenv.config();
@@ -26,19 +39,7 @@ describe("create_fungible_token", () => {
         };
 
         const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
-        let tokenId: string;
-
-        const regex = /Token ID:\s*(\d+\.\d+\.\d+)/;
-        const match = response[response.length - 1].text.match(regex);
-
-        if (match) {
-            tokenId = match[1]; // Extracted Token ID
-            console.log(`Extracted token id: ${tokenId}`);
-        } else {
-            throw new Error(
-                "No match for token ID was found in ElizaOS response."
-            );
-        }
+        const tokenId = extractTokenId(response[response.length - 1].text);
 
         await wait(5000);
 
@@ -57,5 +58,182 @@ describe("create_fungible_token", () => {
         expect(tokenDetails?.supply_key?.key).not.toBeFalsy();
         expect(tokenDetails?.admin_key?.key).not.toBeFalsy();
         expect(tokenDetails?.metadata_key?.key).not.toBeFalsy();
+    });
+
+    it("Create token with minimal parameters", async () => {
+        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const hederaApiClient = new HederaMirrorNodeClient("testnet");
+
+        const agentId = await elizaOsApiClient.getAgentId();
+
+        const promptText =
+            "Create token Minimal Token with symbol MT, 3 decimal places, and starting supply of 333.";
+        const prompt: ElizaOSPrompt = {
+            user: "user",
+            text: promptText,
+        };
+
+        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const tokenId = extractTokenId(response[response.length - 1].text);
+
+        await wait(5000);
+
+        const tokenDetails = await hederaApiClient.getTokenDetails(tokenId);
+
+        expect(tokenDetails.symbol).toEqual("MT");
+        expect(tokenDetails.name).toEqual("Minimal Token");
+        expect(tokenDetails.decimals).toEqual("3");
+        expect(tokenDetails.initial_supply).toEqual(
+            formDisplayToBaseUnit(333, 3).toString()
+        );
+        expect(tokenDetails.memo).toBeNull();
+        expect(
+            tokenDetails.metadata ? atob(tokenDetails.metadata) : null
+        ).toEqual(null);
+        expect(tokenDetails?.supply_key?.key).not.toBeUndefined();
+        expect(tokenDetails?.admin_key?.key).not.toBeUndefined();
+        expect(tokenDetails?.metadata_key?.key).not.toBeUndefined();
+    });
+
+    it("Create token with minimal parameters plus memo", async () => {
+        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const hederaApiClient = new HederaMirrorNodeClient("testnet");
+
+        const agentId = await elizaOsApiClient.getAgentId();
+
+        const promptText =
+            "Create token 'Minimal Plus Memo Token' with symbol MPMT, 4 decimal places, and starting supply of 444. Set memo to 'Automatic tests memo'";
+        const prompt: ElizaOSPrompt = {
+            user: "user",
+            text: promptText,
+        };
+
+        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const tokenId = extractTokenId(response[response.length - 1].text);
+
+        await wait(5000);
+
+        const tokenDetails = await hederaApiClient.getTokenDetails(tokenId);
+
+        expect(tokenDetails.symbol).toEqual("MPMT");
+        expect(tokenDetails.name).toEqual("Minimal Plus Memo Token");
+        expect(tokenDetails.decimals).toEqual("4");
+        expect(tokenDetails.initial_supply).toEqual(
+            formDisplayToBaseUnit(444, 4).toString()
+        );
+        expect(tokenDetails.memo).toEqual("Automatic tests memo");
+        expect(
+            tokenDetails.metadata ? atob(tokenDetails.metadata) : null
+        ).toEqual(null);
+        expect(tokenDetails?.supply_key?.key).toBeUndefined();
+        expect(tokenDetails?.admin_key?.key).toBeUndefined();
+        expect(tokenDetails?.metadata_key?.key).toBeUndefined();
+    });
+
+    it("Create token with minimal parameters plus metadata key", async () => {
+        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const hederaApiClient = new HederaMirrorNodeClient("testnet");
+
+        const agentId = await elizaOsApiClient.getAgentId();
+
+        const promptText =
+            "Create token 'Minimal Plus Metadata Key Token' with symbol MPMKT, 5 decimal places, and starting supply of 555. Set metadata key to agents key.";
+        const prompt: ElizaOSPrompt = {
+            user: "user",
+            text: promptText,
+        };
+
+        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const tokenId = extractTokenId(response[response.length - 1].text);
+
+        await wait(5000);
+
+        const tokenDetails = await hederaApiClient.getTokenDetails(tokenId);
+
+        expect(tokenDetails.symbol).toEqual("MPMKT");
+        expect(tokenDetails.name).toEqual("Minimal Plus Metadata Key Token");
+        expect(tokenDetails.decimals).toEqual("5");
+        expect(tokenDetails.initial_supply).toEqual(
+            formDisplayToBaseUnit(555, 5).toString()
+        );
+        expect(tokenDetails.memo).toBeNull();
+        expect(
+            tokenDetails.metadata ? atob(tokenDetails.metadata) : null
+        ).toEqual(null);
+        expect(tokenDetails?.supply_key?.key).toBeUndefined();
+        expect(tokenDetails?.admin_key?.key).toBeUndefined();
+        expect(tokenDetails?.metadata_key?.key).not.toBeUndefined();
+    });
+
+    it("Create token with minimal parameters plus admin key and supply key", async () => {
+        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const hederaApiClient = new HederaMirrorNodeClient("testnet");
+
+        const agentId = await elizaOsApiClient.getAgentId();
+
+        const promptText =
+            "Create token 'Minimal Plus Admin Supply Keys Token' with symbol MPASKT, 1 decimal places, and starting supply of 111. Set admin key and supply keys.";
+        const prompt: ElizaOSPrompt = {
+            user: "user",
+            text: promptText,
+        };
+
+        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const tokenId = extractTokenId(response[response.length - 1].text);
+
+        await wait(5000);
+
+        const tokenDetails = await hederaApiClient.getTokenDetails(tokenId);
+
+        expect(tokenDetails.symbol).toEqual("MPASKT");
+        expect(tokenDetails.name).toEqual(
+            "Minimal Plus Admin Supply Keys Token"
+        );
+        expect(tokenDetails.decimals).toEqual("1");
+        expect(tokenDetails.initial_supply).toEqual(
+            formDisplayToBaseUnit(111, 1).toString()
+        );
+        expect(tokenDetails.memo).toBeNull();
+        expect(
+            tokenDetails.metadata ? atob(tokenDetails.metadata) : null
+        ).toBeNull();
+        expect(tokenDetails?.supply_key?.key).not.toBeUndefined();
+        expect(tokenDetails?.admin_key?.key).not.toBeUndefined();
+        expect(tokenDetails?.metadata_key?.key).toBeUndefined();
+    });
+
+    it("Create token with minimal parameters plus admin key and supply key and memo and metadata", async () => {
+        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const hederaApiClient = new HederaMirrorNodeClient("testnet");
+
+        const agentId = await elizaOsApiClient.getAgentId();
+
+        const promptText =
+            "Create token 'Complex Token' with symbol CPLXT, 1 decimal places, and starting supply of 1111. Set admin key and supply keys. Set memo to 'This a complex token'. Set metadata to 'You have accessed the metadata of a CPLXT'";
+        const prompt: ElizaOSPrompt = {
+            user: "user",
+            text: promptText,
+        };
+
+        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const tokenId = extractTokenId(response[response.length - 1].text);
+
+        await wait(5000);
+
+        const tokenDetails = await hederaApiClient.getTokenDetails(tokenId);
+
+        expect(tokenDetails.symbol).toEqual("CPLXT");
+        expect(tokenDetails.name).toEqual("Complex Token");
+        expect(tokenDetails.decimals).toEqual("1");
+        expect(tokenDetails.initial_supply).toEqual(
+            formDisplayToBaseUnit(1111, 1).toString()
+        );
+        expect(tokenDetails.memo).toBe("This a complex token");
+        expect(atob(tokenDetails.metadata)).toBe(
+            "You have accessed the metadata of a CPLXT"
+        );
+        expect(tokenDetails?.supply_key?.key).not.toBeUndefined();
+        expect(tokenDetails?.admin_key?.key).not.toBeUndefined();
+        expect(tokenDetails?.metadata_key?.key).toBeUndefined();
     });
 });
