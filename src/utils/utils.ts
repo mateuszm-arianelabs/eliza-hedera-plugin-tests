@@ -2,14 +2,14 @@ export function fromTinybarToHbar(valueInTinyBar: number): number {
     return valueInTinyBar / 10 ** 8;
 }
 
-export function formBaseToDisplayUnit(
+export function fromBaseToDisplayUnit(
     rawBalance: number,
     decimals: number
 ): number {
     return rawBalance / 10 ** decimals;
 }
 
-export function formDisplayToBaseUnit(
+export function frommDisplayToBaseUnit(
     displayBalance: number,
     decimals: number
 ): number {

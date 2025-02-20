@@ -1,12 +1,14 @@
 import {
     AccountsResponse,
+    AllTokensBalancesApiResponse,
+    DetailedTokenBalance,
     HTSBalanceResponse,
     HtsTokenDetails,
     NetworkType,
     TransactionsResponse,
     txReport,
 } from "../types";
-import { formBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
+import { fromBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
 
 export class HederaMirrorNodeClient {
     private baseUrl: string;
@@ -45,7 +47,7 @@ export class HederaMirrorNodeClient {
         const decimals = parsedResponse?.balances[0]?.decimals;
 
         const balanceInDisplayUnit = parsedResponse?.balances[0]
-            ? formBaseToDisplayUnit(rawBalance, decimals)
+            ? fromBaseToDisplayUnit(rawBalance, decimals)
             : 0;
 
         console.log(
@@ -98,5 +100,55 @@ export class HederaMirrorNodeClient {
 
         const response = await fetch(url, { method: "GET" });
         return response.json();
+    }
+
+    async getAllTokensBalances(
+        accountId: string
+    ): Promise<Array<DetailedTokenBalance>> {
+        let url: string | null =
+            `${this.baseUrl}/balances?account.id=${accountId}`;
+        const array = new Array<DetailedTokenBalance>();
+
+        console.log(`URL: ${url}`);
+
+        try {
+            while (url) {
+                // Results are paginated
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data: AllTokensBalancesApiResponse =
+                    await response.json();
+
+                for (const token of data.balances[0]?.tokens || []) {
+                    const tokenDetails: HtsTokenDetails =
+                        await this.getTokenDetails(token.token_id);
+
+                    const detailedTokenBalance: DetailedTokenBalance = {
+                        balance: token.balance,
+                        tokenDecimals: tokenDetails.decimals,
+                        tokenId: token.token_id,
+                        tokenName: tokenDetails.name,
+                        tokenSymbol: tokenDetails.symbol,
+                        balanceInDisplayUnit: fromBaseToDisplayUnit(
+                            token.balance,
+                            +tokenDetails.decimals
+                        ),
+                    };
+                    array.push(detailedTokenBalance);
+                }
+
+                // Update URL for pagination
+                url = data.links.next;
+            }
+
+            return array;
+        } catch (error) {
+            console.error("Failed to fetch token balances. Error:", error);
+            throw error;
+        }
     }
 }
