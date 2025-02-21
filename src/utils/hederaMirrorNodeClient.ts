@@ -9,6 +9,7 @@ import {
     txReport,
 } from "../types";
 import { fromBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
+import BigNumber from "bignumber.js";
 
 export class HederaMirrorNodeClient {
     private baseUrl: string;
@@ -133,9 +134,11 @@ export class HederaMirrorNodeClient {
                         tokenId: token.token_id,
                         tokenName: tokenDetails.name,
                         tokenSymbol: tokenDetails.symbol,
-                        balanceInDisplayUnit: fromBaseToDisplayUnit(
-                            token.balance,
-                            +tokenDetails.decimals
+                        balanceInDisplayUnit: BigNumber(
+                            fromBaseToDisplayUnit(
+                                token.balance,
+                                +tokenDetails.decimals
+                            )
                         ),
                     };
                     array.push(detailedTokenBalance);
