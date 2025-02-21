@@ -127,8 +127,7 @@ describe("Test HBAR transfer", async () => {
                     8
                 );
 
-                // Wait between tests to avoid rate limiting
-                await wait(3000);
+                await wait(1000);
             }
         });
     });

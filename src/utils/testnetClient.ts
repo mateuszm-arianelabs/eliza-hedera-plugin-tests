@@ -43,7 +43,7 @@ export class NetworkClientWrapper {
 
     async createAccount(
         initialHBARAmount: number = 0,
-        maxAutoAsociation: number = -1
+        maxAutoAssociation: number = -1
     ): Promise<AccountData> {
         const accountPrivateKey = PrivateKey.generateECDSA();
         const accountPublicKey = accountPrivateKey.publicKey;
@@ -51,7 +51,7 @@ export class NetworkClientWrapper {
         const tx = new AccountCreateTransaction()
             .setKey(accountPublicKey)
             .setInitialBalance(new Hbar(initialHBARAmount))
-            .setMaxAutomaticTokenAssociations(maxAutoAsociation);
+            .setMaxAutomaticTokenAssociations(maxAutoAssociation);
         const txResponse = await tx.execute(this.client);
         const receipt = await txResponse.getReceipt(this.client);
         const txStatus = receipt.status;

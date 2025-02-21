@@ -76,6 +76,7 @@ describe("get_hbar_balance", () => {
                     await hederaApiClient.getHbarBalance(accountId);
 
                 expect(hederaActionBalance).toEqual(mirrorNodeBalance);
+
                 await wait(1000);
             }
         });
