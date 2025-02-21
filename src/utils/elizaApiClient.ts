@@ -5,20 +5,32 @@ import {
 } from "../types";
 
 export class ElizaOSApiClient {
-    constructor(private baseUrl: string) {}
+    private agentId: string;
+    constructor(private baseUrl: string) {
+        this.agentId = "";
+    }
 
-    async sendPrompt(
-        agentId: string,
-        prompt: ElizaOSPrompt
-    ): Promise<ElizaOSPromptResponse[]> {
+    async setup(): Promise<void> {
+        this.agentId = await this.getAgentId();
+    }
+
+    async sendPrompt(prompt: ElizaOSPrompt): Promise<ElizaOSPromptResponse[]> {
+        if (this.agentId === "") {
+            throw new Error(
+                "No agentId provided. ElizaOSApiClient needs to be set up before using."
+            );
+        }
         try {
-            const response = await fetch(`${this.baseUrl}/${agentId}/message`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(prompt),
-            });
+            const response = await fetch(
+                `${this.baseUrl}/${this.agentId}/message`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(prompt),
+                }
+            );
 
             if (!response.ok) {
                 throw new Error(`ElizaOS API error: ${response.statusText}`);

@@ -8,22 +8,27 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 describe("Test connection with ElizaOS instance", () => {
     beforeEach(async () => {
         dotenv.config();
-        await wait(3000);
+        await wait(1000);
     });
     it("should receive 'Welcome, this is the REST API!'", async () => {
-        const client = new ElizaOSApiClient("http://localhost:3000");
-        const response = await client.getHello();
+        const elizaOsApiClient = new ElizaOSApiClient(
+            `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+        );
+        await elizaOsApiClient.setup();
+        const response = await elizaOsApiClient.getHello();
 
         expect(response.message).toEqual("Hello World!");
     });
     it("should post message to ElizaOs and receive response", async () => {
-        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
-        const agentId = await elizaOsApiClient.getAgentId();
+        const elizaOsApiClient = new ElizaOSApiClient(
+            `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+        );
+        await elizaOsApiClient.setup();
         const prompt: ElizaOSPrompt = {
             user: "user",
             text: "Whats your name?",
         };
-        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
-        console.log(JSON.stringify(response, null, 2));
+        const response = await elizaOsApiClient.sendPrompt(prompt);
+        expect(response[0].text).not.toBeNull();
     });
 });

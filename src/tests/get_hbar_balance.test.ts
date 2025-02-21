@@ -21,16 +21,16 @@ describe("get_hbar_balance", () => {
         "balance for %s should be equal to data from Mirror Node API",
         async (accountId, promptText) => {
             const elizaOsApiClient = new ElizaOSApiClient(
-                "http://localhost:3000"
+                `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
             );
+            await elizaOsApiClient.setup();
             const hederaApiClient = new HederaMirrorNodeClient("testnet");
 
-            const agentId = await elizaOsApiClient.getAgentId();
             const prompt: ElizaOSPrompt = {
                 user: "user",
                 text: promptText,
             };
-            const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+            const response = await elizaOsApiClient.sendPrompt(prompt);
             let hederaActionBalance: number;
 
             const match = response[response.length - 1].text.match(

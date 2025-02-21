@@ -20,8 +20,9 @@ describe("Test HBAR transfer", async () => {
         "should process transfer for receiversAccountId: %s, transferAmount: %d, prompt: %s",
         async (receiversAccountId, transferAmount, promptText) => {
             const elizaOsApiClient = new ElizaOSApiClient(
-                "http://localhost:3000"
+                `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
             );
+            await elizaOsApiClient.setup();
             const hederaApiClient = new HederaMirrorNodeClient("testnet");
 
             const agentsAccountId = process.env.HEDERA_ACCOUNT_ID;
@@ -39,12 +40,11 @@ describe("Test HBAR transfer", async () => {
                 await hederaApiClient.getHbarBalance(receiversAccountId);
 
             // Perform transfer action
-            const agentId = await elizaOsApiClient.getAgentId();
             const prompt: ElizaOSPrompt = {
                 user: "user",
                 text: promptText,
             };
-            const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+            const response = await elizaOsApiClient.sendPrompt(prompt);
             let txHash: string;
 
             const match = response[response.length - 1].text.match(

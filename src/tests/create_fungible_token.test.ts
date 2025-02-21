@@ -26,10 +26,11 @@ describe("create_fungible_token", () => {
         await wait(3000);
     });
     it("Create token with all possible parameters", async () => {
-        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const elizaOsApiClient = new ElizaOSApiClient(
+            `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+        );
+        await elizaOsApiClient.setup();
         const hederaApiClient = new HederaMirrorNodeClient("testnet");
-
-        const agentId = await elizaOsApiClient.getAgentId();
 
         const promptText =
             "Create token GameGold with symbol GG, 2 decimal places, and starting supply of 750000. Set memo to 'This is an example memo' and token metadata to 'And that's an example metadata'. Add supply key, admin key. Set metadata key.";
@@ -38,7 +39,7 @@ describe("create_fungible_token", () => {
             text: promptText,
         };
 
-        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const response = await elizaOsApiClient.sendPrompt(prompt);
         const tokenId = extractTokenId(response[response.length - 1].text);
 
         await wait(5000);
@@ -61,10 +62,11 @@ describe("create_fungible_token", () => {
     });
 
     it("Create token with minimal parameters", async () => {
-        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const elizaOsApiClient = new ElizaOSApiClient(
+            `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+        );
+        await elizaOsApiClient.setup();
         const hederaApiClient = new HederaMirrorNodeClient("testnet");
-
-        const agentId = await elizaOsApiClient.getAgentId();
 
         const promptText =
             "Create token Minimal Token with symbol MT, 3 decimal places, and starting supply of 333.";
@@ -73,7 +75,7 @@ describe("create_fungible_token", () => {
             text: promptText,
         };
 
-        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const response = await elizaOsApiClient.sendPrompt(prompt);
         const tokenId = extractTokenId(response[response.length - 1].text);
 
         await wait(5000);
@@ -94,10 +96,11 @@ describe("create_fungible_token", () => {
     });
 
     it("Create token with minimal parameters plus memo", async () => {
-        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const elizaOsApiClient = new ElizaOSApiClient(
+            `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+        );
+        await elizaOsApiClient.setup();
         const hederaApiClient = new HederaMirrorNodeClient("testnet");
-
-        const agentId = await elizaOsApiClient.getAgentId();
 
         const promptText =
             "Create token 'Minimal Plus Memo Token' with symbol MPMT, 4 decimal places, and starting supply of 444. Set memo to 'Automatic tests memo'";
@@ -106,7 +109,7 @@ describe("create_fungible_token", () => {
             text: promptText,
         };
 
-        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const response = await elizaOsApiClient.sendPrompt(prompt);
         const tokenId = extractTokenId(response[response.length - 1].text);
 
         await wait(5000);
@@ -127,10 +130,11 @@ describe("create_fungible_token", () => {
     });
 
     it("Create token with minimal parameters plus metadata key", async () => {
-        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const elizaOsApiClient = new ElizaOSApiClient(
+            `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+        );
+        await elizaOsApiClient.setup();
         const hederaApiClient = new HederaMirrorNodeClient("testnet");
-
-        const agentId = await elizaOsApiClient.getAgentId();
 
         const promptText =
             "Create token 'Minimal Plus Metadata Key Token' with symbol MPMKT, 5 decimal places, and starting supply of 555. Set metadata key to agents key.";
@@ -139,7 +143,7 @@ describe("create_fungible_token", () => {
             text: promptText,
         };
 
-        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const response = await elizaOsApiClient.sendPrompt(prompt);
         const tokenId = extractTokenId(response[response.length - 1].text);
 
         await wait(5000);
@@ -160,10 +164,11 @@ describe("create_fungible_token", () => {
     });
 
     it("Create token with minimal parameters plus admin key and supply key", async () => {
-        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const elizaOsApiClient = new ElizaOSApiClient(
+            `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+        );
+        await elizaOsApiClient.setup();
         const hederaApiClient = new HederaMirrorNodeClient("testnet");
-
-        const agentId = await elizaOsApiClient.getAgentId();
 
         const promptText =
             "Create token 'Minimal Plus Admin Supply Keys Token' with symbol MPASKT, 1 decimal places, and starting supply of 111. Set admin key and supply keys.";
@@ -172,7 +177,7 @@ describe("create_fungible_token", () => {
             text: promptText,
         };
 
-        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const response = await elizaOsApiClient.sendPrompt(prompt);
         const tokenId = extractTokenId(response[response.length - 1].text);
 
         await wait(5000);
@@ -195,10 +200,11 @@ describe("create_fungible_token", () => {
     });
 
     it("Create token with minimal parameters plus admin key and supply key and memo and metadata", async () => {
-        const elizaOsApiClient = new ElizaOSApiClient("http://localhost:3000");
+        const elizaOsApiClient = new ElizaOSApiClient(
+            `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+        );
+        await elizaOsApiClient.setup();
         const hederaApiClient = new HederaMirrorNodeClient("testnet");
-
-        const agentId = await elizaOsApiClient.getAgentId();
 
         const promptText =
             "Create token 'Complex Token' with symbol CPLXT, 1 decimal places, and starting supply of 1111. Set admin key and supply keys. Set memo to 'This a complex token'. Set metadata to 'this could be a link to image'";
@@ -207,7 +213,7 @@ describe("create_fungible_token", () => {
             text: promptText,
         };
 
-        const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+        const response = await elizaOsApiClient.sendPrompt(prompt);
         const tokenId = extractTokenId(response[response.length - 1].text);
 
         await wait(5000);
