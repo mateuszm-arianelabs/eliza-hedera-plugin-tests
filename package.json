@@ -10,6 +10,10 @@
         "lint:fix": "eslint . --ext .ts,.js --config eslint.config.mjs --fix",
         "format": "prettier --config .prettierrc --write ."
     },
+    "dependencies": {
+        "@hashgraph/sdk": "^2.56.0",
+        "hedera-agent-kit": "github:mateuszm-arianelabs/hedera-agent-kit#develop"
+    },
     "devDependencies": {
         "@eslint/js": "^9.20.0",
         "@types/node": "^22.13.4",

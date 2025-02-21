@@ -1,54 +1,83 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeAll } from "vitest";
 import { ElizaOSApiClient } from "../utils/elizaApiClient";
 import { ElizaOSPrompt } from "../types";
 import { HederaMirrorNodeClient } from "../utils/hederaMirrorNodeClient";
 import * as dotenv from "dotenv";
+import { NetworkClientWrapper } from "../utils/testnetClient";
+import { AccountData } from "../utils/testnetUtils";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("get_hbar_balance", () => {
-    beforeEach(async () => {
+    let acc1: AccountData;
+    let acc2: AccountData;
+    let acc3: AccountData;
+    let elizaOsApiClient: ElizaOSApiClient;
+    let hederaApiClient: HederaMirrorNodeClient;
+    let testCases: [string, string][];
+
+    beforeAll(async () => {
         dotenv.config();
-        await wait(1000);
-    });
-    it.each([
-        ["0.0.5392887", "What's HBAR balance for 0.0.5392887"],
-        ["0.0.5532256", "How much HBARs has 0.0.5532256"],
-        ["0.0.4515756", "Check HBAR balance of wallet 0.0.4515756"],
-        ["0.0.5533781", "What’s the current HBAR balance of 0.0.5533781?"],
-        ["0.0.5533487", "Please check the balance for 0.0.5533487 account"],
-    ])(
-        "balance for %s should be equal to data from Mirror Node API",
-        async (accountId, promptText) => {
-            const elizaOsApiClient = new ElizaOSApiClient(
+        try {
+            const wrapper = new NetworkClientWrapper(
+                process.env.HEDERA_ACCOUNT_ID!,
+                process.env.HEDERA_PRIVATE_KEY!,
+                process.env.HEDERA_KEY_TYPE!,
+                "testnet"
+            );
+            acc1 = await wrapper.createAccount(1);
+            acc2 = await wrapper.createAccount(0.3);
+            acc3 = await wrapper.createAccount(0);
+
+            elizaOsApiClient = new ElizaOSApiClient(
                 `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
             );
             await elizaOsApiClient.setup();
-            const hederaApiClient = new HederaMirrorNodeClient("testnet");
+            hederaApiClient = new HederaMirrorNodeClient("testnet");
 
-            const prompt: ElizaOSPrompt = {
-                user: "user",
-                text: promptText,
-            };
-            const response = await elizaOsApiClient.sendPrompt(prompt);
-            let hederaActionBalance: number;
-
-            const match = response[response.length - 1].text.match(
-                /(\d+\.\d+|\d+)\s*HBAR/
-            );
-
-            if (match) {
-                hederaActionBalance = parseFloat(match[1]);
-            } else {
-                throw new Error(
-                    "No match for HBAR balance found in response from ElizaOs Agent."
-                );
-            }
-
-            const mirrorNodeBalance =
-                await hederaApiClient.getHbarBalance(accountId);
-
-            expect(hederaActionBalance).toEqual(mirrorNodeBalance);
+            testCases = [
+                [acc1.accountId, `What's HBAR balance for ${acc1.accountId}`],
+                [acc2.accountId, `How much HBARs has ${acc2.accountId}`],
+                [
+                    acc3.accountId,
+                    `Check HBAR balance of wallet ${acc3.accountId}`,
+                ],
+            ];
+        } catch (error) {
+            console.error("Error in setup:", error);
+            throw error;
         }
-    );
+    });
+
+    describe("balance checks", () => {
+        it("should test dynamic account balances", async () => {
+            for (const [accountId, promptText] of testCases) {
+                const prompt: ElizaOSPrompt = {
+                    user: "user",
+                    text: promptText,
+                };
+
+                const response = await elizaOsApiClient.sendPrompt(prompt);
+                let hederaActionBalance: number;
+
+                const match = response[response.length - 1].text.match(
+                    /(\d+\.\d+|\d+)\s*HBAR/
+                );
+
+                if (match) {
+                    hederaActionBalance = parseFloat(match[1]);
+                } else {
+                    throw new Error(
+                        "No match for HBAR balance found in response from ElizaOs Agent."
+                    );
+                }
+
+                const mirrorNodeBalance =
+                    await hederaApiClient.getHbarBalance(accountId);
+
+                expect(hederaActionBalance).toEqual(mirrorNodeBalance);
+                await wait(1000);
+            }
+        });
+    });
 });
