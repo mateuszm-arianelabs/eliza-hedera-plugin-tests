@@ -8,48 +8,72 @@ import { AccountData } from "../utils/testnetUtils";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-describe("Test HBAR transfer", async () => {
+describe("Test Token transfer", async () => {
     let acc1: AccountData;
     let acc2: AccountData;
     let acc3: AccountData;
+    let token1: string;
+    let token2: string;
     let elizaOsApiClient: ElizaOSApiClient;
     let hederaApiClient: HederaMirrorNodeClient;
-    let testCases: [string, number, string][];
+    let networkClientWrapper: NetworkClientWrapper;
+    let testCases: [string, number, string, string][];
 
     beforeAll(async () => {
         dotenv.config();
         try {
-            const wrapper = new NetworkClientWrapper(
+            networkClientWrapper = new NetworkClientWrapper(
                 process.env.HEDERA_ACCOUNT_ID!,
                 process.env.HEDERA_PRIVATE_KEY!,
                 process.env.HEDERA_KEY_TYPE!,
                 "testnet"
             );
-            acc1 = await wrapper.createAccount(0);
-            acc2 = await wrapper.createAccount(0);
-            acc3 = await wrapper.createAccount(0);
 
+            // Create test accounts
+            acc1 = await networkClientWrapper.createAccount(0, -1);
+            acc2 = await networkClientWrapper.createAccount(0, -1);
+            acc3 = await networkClientWrapper.createAccount(0, -1);
+
+            // Create test tokens
+            token1 = await networkClientWrapper.createFT({
+                name: "TestToken1",
+                symbol: "TT1",
+                initialSupply: 1000000,
+                decimals: 2,
+            });
+            token2 = await networkClientWrapper.createFT({
+                name: "TestToken2",
+                symbol: "TT2",
+                initialSupply: 2000,
+                decimals: 0,
+            });
+
+            // Initialize API clients
             elizaOsApiClient = new ElizaOSApiClient(
                 `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
             );
             await elizaOsApiClient.setup();
             hederaApiClient = new HederaMirrorNodeClient("testnet");
 
+            // Define test cases using created accounts and tokens
             testCases = [
                 [
                     acc1.accountId,
-                    1,
-                    `Transfer 1 HBAR to the account ${acc1.accountId}`,
+                    12.5,
+                    token1,
+                    `Transfer 12.5 tokens ${token1} to the account ${acc1.accountId}`,
                 ],
                 [
                     acc2.accountId,
-                    0.5,
-                    `Send 0.5 HBAR to account ${acc2.accountId}.`,
+                    10,
+                    token2,
+                    `Send 10 tokens ${token2} to account ${acc2.accountId}.`,
                 ],
                 [
                     acc3.accountId,
                     3,
-                    `Transfer exactly 3 HBAR to ${acc3.accountId}.`,
+                    token1,
+                    `Transfer exactly 3 of token ${token1} to ${acc3.accountId}.`,
                 ],
             ];
         } catch (error) {
@@ -58,11 +82,12 @@ describe("Test HBAR transfer", async () => {
         }
     });
 
-    describe("balance checks", () => {
-        it("should test dynamic HBAR transfers", async () => {
+    describe("token transfers", () => {
+        it("should process token transfers for dynamically created accounts", async () => {
             for (const [
                 receiversAccountId,
                 transferAmount,
+                tokenId,
                 promptText,
             ] of testCases) {
                 const agentsAccountId = process.env.HEDERA_ACCOUNT_ID;
@@ -72,17 +97,22 @@ describe("Test HBAR transfer", async () => {
                     receiversAccountId === agentsAccountId
                 ) {
                     throw new Error(
-                        "Env file must be defined and matching the env of running ElizaOs instance! Note that transfers can be done to the operator account address."
+                        "Env file must be defined and matching the env of running ElizaOs instance! Note that transfers cant be done to the operator account address."
                     );
                 }
 
                 // Get balances before
                 const balanceAgentBefore =
-                    await hederaApiClient.getHbarBalance(agentsAccountId);
+                    await hederaApiClient.getTokenBalance(
+                        agentsAccountId,
+                        tokenId
+                    );
                 const balanceReceiverBefore =
-                    await hederaApiClient.getHbarBalance(receiversAccountId);
+                    await hederaApiClient.getTokenBalance(
+                        receiversAccountId,
+                        tokenId
+                    );
 
-                // Perform transfer action
                 const prompt: ElizaOSPrompt = {
                     user: "user",
                     text: promptText,
@@ -106,10 +136,15 @@ describe("Test HBAR transfer", async () => {
                 // Get balances after transaction being successfully processed by mirror node
                 await wait(5000);
 
-                const balanceAgentAfter =
-                    await hederaApiClient.getHbarBalance(agentsAccountId);
+                const balanceAgentAfter = await hederaApiClient.getTokenBalance(
+                    agentsAccountId,
+                    tokenId
+                );
                 const balanceReceiverAfter =
-                    await hederaApiClient.getHbarBalance(receiversAccountId);
+                    await hederaApiClient.getTokenBalance(
+                        receiversAccountId,
+                        tokenId
+                    );
                 const txReport = await hederaApiClient.getTransactionReport(
                     txHash,
                     agentsAccountId,
@@ -118,13 +153,11 @@ describe("Test HBAR transfer", async () => {
 
                 // Compare before and after including the difference due to paid fees
                 expect(txReport.status).toEqual("SUCCESS");
-                expect(balanceAgentBefore).toBeCloseTo(
-                    balanceAgentAfter + transferAmount + txReport.totalPaidFees,
-                    8
+                expect(balanceAgentBefore).toEqual(
+                    balanceAgentAfter + transferAmount
                 );
-                expect(balanceReceiverBefore).toBeCloseTo(
-                    balanceReceiverAfter - transferAmount,
-                    8
+                expect(balanceReceiverBefore).toEqual(
+                    balanceReceiverAfter - transferAmount
                 );
 
                 await wait(1000);

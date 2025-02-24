@@ -1,55 +1,126 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it, beforeAll } from "vitest";
 import { ElizaOSApiClient } from "../utils/elizaApiClient";
 import { ElizaOSPrompt } from "../types";
 import { HederaMirrorNodeClient } from "../utils/hederaMirrorNodeClient";
 import * as dotenv from "dotenv";
+import { NetworkClientWrapper } from "../utils/testnetClient";
+import { AccountData } from "../utils/testnetUtils";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("get_all_balances", () => {
-    dotenv.config();
-    const agentsWalletId = `${process.env.HEDERA_ACCOUNT_ID!}`;
+    let acc1: AccountData;
+    let acc2: AccountData;
+    let acc3: AccountData;
+    let token1: string;
+    let token2: string;
+    let elizaOsApiClient: ElizaOSApiClient;
+    let hederaApiClient: HederaMirrorNodeClient;
+    let testCases: [string, string][];
 
-    beforeEach(async () => {
-        await wait(1000);
-    });
-    it.each([
-        [
-            "0.0.4515756",
-            "Show me the balances of all HTS tokens for wallet 0.0.4515756",
-        ],
-        [
-            "0.0.5133523",
-            "What are the HTS token balances for wallet 0.0.5133523",
-        ],
-        ["0.0.5462428", "Show me all token balances for account 0.0.5462428"],
-        [agentsWalletId, "Show me all your token balances."],
-        [agentsWalletId, "Show me all my token balances."],
-    ])(
-        "balance of all tokens for %s should be equal to data from Mirror Node API",
-        async (accountId, promptText) => {
-            const elizaOsApiClient = new ElizaOSApiClient(
-                "http://localhost:3000"
+    beforeAll(async () => {
+        dotenv.config();
+        try {
+            const networkClientWrapper = new NetworkClientWrapper(
+                process.env.HEDERA_ACCOUNT_ID!,
+                process.env.HEDERA_PRIVATE_KEY!,
+                process.env.HEDERA_KEY_TYPE!,
+                "testnet"
             );
-            const hederaApiClient = new HederaMirrorNodeClient("testnet");
 
-            const agentId = await elizaOsApiClient.getAgentId();
-            const prompt: ElizaOSPrompt = {
-                user: "user",
-                text: promptText,
-            };
-            const response = await elizaOsApiClient.sendPrompt(agentId, prompt);
+            // Create accounts
+            acc1 = await networkClientWrapper.createAccount(0, -1);
+            acc2 = await networkClientWrapper.createAccount(0, -1);
+            acc3 = await networkClientWrapper.createAccount(0, -1);
 
-            const allTokensBalances =
-                await hederaApiClient.getAllTokensBalances(accountId);
+            // Create tokens
+            token1 = await networkClientWrapper.createFT({
+                name: "MyToken",
+                symbol: "MTK",
+                initialSupply: 1000,
+                decimals: 2,
+            });
+            token2 = await networkClientWrapper.createFT({
+                name: "MyToken2",
+                symbol: "MTK2",
+                initialSupply: 2000,
+                decimals: 0,
+            });
 
-            let parsedAllTokensBalances: string = "";
+            // Transfer tokens to accounts
+            await networkClientWrapper.transferToken(
+                acc1.accountId,
+                token1,
+                100
+            );
+            await networkClientWrapper.transferToken(
+                acc2.accountId,
+                token2,
+                123
+            );
+            await networkClientWrapper.transferToken(
+                acc3.accountId,
+                token2,
+                10
+            );
+            await networkClientWrapper.transferToken(acc3.accountId, token1, 7);
 
-            for (const balance of allTokensBalances) {
-                parsedAllTokensBalances += `${balance.tokenName}: ${balance.balanceInDisplayUnit} ${balance.tokenSymbol} (${balance.tokenId})\n`;
-            }
+            // Initialize API clients
+            elizaOsApiClient = new ElizaOSApiClient(
+                `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+            );
+            await elizaOsApiClient.setup();
+            hederaApiClient = new HederaMirrorNodeClient("testnet");
 
-            expect(response[1].text).toContain(parsedAllTokensBalances);
+            testCases = [
+                [
+                    acc1.accountId,
+                    `Show me the balances of all tokens for wallet ${acc1.accountId}`,
+                ],
+                [
+                    acc2.accountId,
+                    `What are the token balances for wallet ${acc2.accountId}`,
+                ],
+                [
+                    acc3.accountId,
+                    `Show me all token balances for account ${acc3.accountId}`,
+                ],
+                [
+                    process.env.HEDERA_ACCOUNT_ID!,
+                    "Show me all your token balances.",
+                ],
+                [
+                    process.env.HEDERA_ACCOUNT_ID!,
+                    "Show me all my token balances.",
+                ],
+            ];
+        } catch (error) {
+            console.error("Error in setup:", error);
+            throw error;
         }
-    );
+    });
+
+    describe("balance checks", () => {
+        it("should test all token balances", async () => {
+            for (const [accountId, promptText] of testCases) {
+                const prompt: ElizaOSPrompt = {
+                    user: "user",
+                    text: promptText,
+                };
+
+                const response = await elizaOsApiClient.sendPrompt(prompt);
+                const allTokensBalances =
+                    await hederaApiClient.getAllTokensBalances(accountId);
+
+                let parsedAllTokensBalances: string = "";
+                for (const balance of allTokensBalances) {
+                    parsedAllTokensBalances += `${balance.tokenName}: ${balance.balanceInDisplayUnit} ${balance.tokenSymbol} (${balance.tokenId})\n`;
+                }
+
+                expect(response[1].text).toContain(parsedAllTokensBalances);
+
+                await wait(1000);
+            }
+        });
+    });
 });

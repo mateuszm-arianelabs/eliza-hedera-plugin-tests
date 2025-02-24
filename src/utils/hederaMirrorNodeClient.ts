@@ -9,7 +9,7 @@ import {
     txReport,
 } from "../types";
 import BigNumber from "bignumber.js";
-import { formBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
+import { fromBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
 
 export class HederaMirrorNodeClient {
     private baseUrl: string;
@@ -48,7 +48,7 @@ export class HederaMirrorNodeClient {
         const decimals = parsedResponse?.balances[0]?.decimals;
 
         const balanceInDisplayUnit = parsedResponse?.balances[0]
-            ? formBaseToDisplayUnit(rawBalance, decimals)
+            ? fromBaseToDisplayUnit(rawBalance, decimals)
             : 0;
 
         console.log(
