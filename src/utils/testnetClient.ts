@@ -43,7 +43,7 @@ export class NetworkClientWrapper {
 
     async createAccount(
         initialHBARAmount: number = 0,
-        maxAutoAssociation: number = -1
+        maxAutoAssociation: number = -1 // defaults to setting max auto association to unlimited
     ): Promise<AccountData> {
         const accountPrivateKey = PrivateKey.generateECDSA();
         const accountPublicKey = accountPrivateKey.publicKey;
