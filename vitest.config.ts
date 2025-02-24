@@ -8,6 +8,7 @@ export default defineConfig({
             reporter: ["text", "json", "html"],
         },
         testTimeout: 60000,
+        hookTimeout: 60000,
         maxConcurrency: 1,
         fileParallelism: false,
     },
