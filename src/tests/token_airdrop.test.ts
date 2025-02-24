@@ -55,7 +55,7 @@ describe("Test Token Airdrop", async () => {
             });
 
             token3 = await networkClientWrapper.createFT({
-                name: "AirdropToken2",
+                name: "AirdropToken3",
                 symbol: "ADT3",
                 initialSupply: 10000000,
                 decimals: 3,
@@ -166,14 +166,20 @@ describe("Test Token Airdrop", async () => {
                     tokenId
                 );
 
-                const balancesOfReceiversAfter = new Map<string, number>();
-                for (const id of receiversAccountsIds) {
-                    const balance = await hederaApiClient.getTokenBalance(
-                        id,
-                        tokenId
-                    );
-                    balancesOfReceiversAfter.set(id, balance);
-                }
+                const balancesOfReceiversAfter = new Map<string, number>(
+                    await Promise.all(
+                        receiversAccountsIds.map(
+                            async (id): Promise<[string, number]> => {
+                                const balance =
+                                    await hederaApiClient.getTokenBalance(
+                                        id,
+                                        tokenId
+                                    );
+                                return [id, balance];
+                            }
+                        )
+                    )
+                );
 
                 const txReport = await hederaApiClient.getTransactionReport(
                     txHash,
