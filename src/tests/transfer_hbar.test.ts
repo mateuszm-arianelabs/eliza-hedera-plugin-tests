@@ -70,7 +70,7 @@ describe("Test HBAR transfer", async () => {
             const txReport = await hederaApiClient.getTransactionReport(
                 txHash,
                 agentsAccountId,
-                receiversAccountId
+                [receiversAccountId]
             );
 
             // Compare before and after including the difference due to paid fees

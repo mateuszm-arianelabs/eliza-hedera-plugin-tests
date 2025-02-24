@@ -61,7 +61,7 @@ export class HederaMirrorNodeClient {
     async getTransactionReport(
         transactionId: string,
         senderId: string,
-        receiverId: string
+        receiversId: string[]
     ): Promise<txReport> {
         const url = `${this.baseUrl}/transactions/${transactionId}`;
         console.log(`URL: ${url}`);
@@ -77,7 +77,11 @@ export class HederaMirrorNodeClient {
         const result: TransactionsResponse = await response.json();
 
         const totalFees = result.transactions[0].transfers
-            .filter((t) => t.account !== senderId && t.account !== receiverId)
+            .filter(
+                (t) =>
+                    t.account !== senderId &&
+                    !receiversId.find((r) => r === t.account)
+            )
             .reduce((sum, t) => sum + t.amount, 0);
 
         const status = result.transactions[0].result;
