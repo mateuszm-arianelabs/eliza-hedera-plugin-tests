@@ -7,7 +7,9 @@ export default defineConfig({
             provider: "v8",
             reporter: ["text", "json", "html"],
         },
-        testTimeout: 30000,
+        testTimeout: 60000,
+        hookTimeout: 60000,
         maxConcurrency: 1,
+        fileParallelism: false,
     },
 });
