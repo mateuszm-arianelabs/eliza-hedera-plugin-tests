@@ -190,3 +190,22 @@ export type AllTokensBalancesApiResponse = {
         next: string | null; // link to next page
     };
 };
+
+export type PendingAirdrop = {
+    amount: number;
+    receiver_id: string;
+    sender_id: string;
+    serial_number: number | null;
+    timestamp: {
+        from: string;
+        to: string | null;
+    };
+    token_id: string;
+};
+
+export type PendingAirdropsResponse = {
+    airdrops: PendingAirdrop[];
+    links: {
+        next: string | null;
+    };
+}; 
