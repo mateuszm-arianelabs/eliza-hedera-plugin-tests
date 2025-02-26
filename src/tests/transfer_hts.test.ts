@@ -84,34 +84,22 @@ describe("Test Token transfer", async () => {
 
     describe("token transfers", () => {
         it("should process token transfers for dynamically created accounts", async () => {
-            for (const [
-                receiversAccountId,
-                transferAmount,
-                tokenId,
-                promptText,
-            ] of testCases) {
+            await testCases.reduce(async (promise, [receiversAccountId, transferAmount, tokenId, promptText]) => {
+                await promise;
+
                 const agentsAccountId = process.env.HEDERA_ACCOUNT_ID;
 
-                if (
-                    !agentsAccountId ||
-                    receiversAccountId === agentsAccountId
-                ) {
+                if (!agentsAccountId || receiversAccountId === agentsAccountId) {
                     throw new Error(
                         "Env file must be defined and matching the env of running ElizaOs instance! Note that transfers cant be done to the operator account address."
                     );
                 }
 
                 // Get balances before
-                const balanceAgentBefore =
-                    await hederaApiClient.getTokenBalance(
-                        agentsAccountId,
-                        tokenId
-                    );
-                const balanceReceiverBefore =
-                    await hederaApiClient.getTokenBalance(
-                        receiversAccountId,
-                        tokenId
-                    );
+                const [balanceAgentBefore, balanceReceiverBefore] = await Promise.all([
+                    hederaApiClient.getTokenBalance(agentsAccountId, tokenId),
+                    hederaApiClient.getTokenBalance(receiversAccountId, tokenId)
+                ]);
 
                 const prompt: ElizaOSPrompt = {
                     user: "user",
@@ -136,15 +124,11 @@ describe("Test Token transfer", async () => {
                 // Get balances after transaction being successfully processed by mirror node
                 await wait(5000);
 
-                const balanceAgentAfter = await hederaApiClient.getTokenBalance(
-                    agentsAccountId,
-                    tokenId
-                );
-                const balanceReceiverAfter =
-                    await hederaApiClient.getTokenBalance(
-                        receiversAccountId,
-                        tokenId
-                    );
+                const [balanceAgentAfter, balanceReceiverAfter] = await Promise.all([
+                    hederaApiClient.getTokenBalance(agentsAccountId, tokenId),
+                    hederaApiClient.getTokenBalance(receiversAccountId, tokenId)
+                ]);
+
                 const txReport = await hederaApiClient.getTransactionReport(
                     txHash,
                     agentsAccountId,
@@ -154,14 +138,14 @@ describe("Test Token transfer", async () => {
                 // Compare before and after including the difference due to paid fees
                 expect(txReport.status).toEqual("SUCCESS");
                 expect(balanceAgentBefore).toEqual(
-                    balanceAgentAfter + transferAmount
+                    Number(balanceAgentAfter) + transferAmount
                 );
                 expect(balanceReceiverBefore).toEqual(
-                    balanceReceiverAfter - transferAmount
+                    Number(balanceReceiverAfter) - transferAmount
                 );
 
                 await wait(1000);
-            }
+            }, Promise.resolve());
         });
     });
 });

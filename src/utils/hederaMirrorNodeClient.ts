@@ -125,28 +125,28 @@ export class HederaMirrorNodeClient {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
-                const data: AllTokensBalancesApiResponse =
-                    await response.json();
+                const data: AllTokensBalancesApiResponse = await response.json();
 
-                for (const token of data.balances[0]?.tokens || []) {
-                    const tokenDetails: HtsTokenDetails =
-                        await this.getTokenDetails(token.token_id);
+                const tokenBalances = await Promise.all(
+                    (data.balances[0]?.tokens || []).map(async (token) => {
+                        const tokenDetails: HtsTokenDetails = await this.getTokenDetails(token.token_id);
+                        return {
+                            balance: token.balance,
+                            tokenDecimals: tokenDetails.decimals,
+                            tokenId: token.token_id,
+                            tokenName: tokenDetails.name,
+                            tokenSymbol: tokenDetails.symbol,
+                            balanceInDisplayUnit: BigNumber(
+                                fromBaseToDisplayUnit(
+                                    token.balance,
+                                    +tokenDetails.decimals
+                                )
+                            ),
+                        };
+                    })
+                );
 
-                    const detailedTokenBalance: DetailedTokenBalance = {
-                        balance: token.balance,
-                        tokenDecimals: tokenDetails.decimals,
-                        tokenId: token.token_id,
-                        tokenName: tokenDetails.name,
-                        tokenSymbol: tokenDetails.symbol,
-                        balanceInDisplayUnit: BigNumber(
-                            fromBaseToDisplayUnit(
-                                token.balance,
-                                +tokenDetails.decimals
-                            )
-                        ),
-                    };
-                    array.push(detailedTokenBalance);
-                }
+                array.push(...tokenBalances);
 
                 // Update URL for pagination
                 url = data.links.next;
