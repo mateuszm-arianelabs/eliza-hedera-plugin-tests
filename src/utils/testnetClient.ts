@@ -8,10 +8,12 @@ import {
 } from "@hashgraph/sdk";
 import { AccountData, hederaPrivateKeyFromString } from "./testnetUtils";
 import {
+    AirdropResult,
     CreateFTOptions,
     HederaAgentKit,
     HederaNetworkType,
 } from "hedera-agent-kit";
+import { AirdropRecipient } from "hedera-agent-kit/dist/tools/hts/transactions/airdrop";
 
 export class NetworkClientWrapper {
     private readonly accountId: AccountId;
@@ -82,5 +84,19 @@ export class NetworkClientWrapper {
             receiverId,
             amount
         );
+    }
+
+    async airdropToken(
+        tokenId: string,
+        recipients: AirdropRecipient[]
+    ): Promise<AirdropResult> {
+        return this.agentKit.airdropToken(
+            TokenId.fromString(tokenId),
+            recipients
+        );
+    }
+
+    getAccountId(): string {
+        return this.accountId.toString();
     }
 }
