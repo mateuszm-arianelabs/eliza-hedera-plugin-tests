@@ -23,9 +23,17 @@ describe("get_pending_airdrops", () => {
                 process.env.HEDERA_KEY_TYPE!,
                 "testnet"
             );
-            acc1 = await networkClientWrapper.createAccount(0, 0);
-            acc2 = await networkClientWrapper.createAccount(0, 0);
-            acc3 = await networkClientWrapper.createAccount(0, 0);
+
+            await Promise.all([
+                networkClientWrapper.createAccount(0, 0),
+                networkClientWrapper.createAccount(0, 0),
+                networkClientWrapper.createAccount(0, 0),
+            ]).then(([_acc1, _acc2, _acc3]) => {
+                acc1 = _acc1;
+                acc2 = _acc2;
+                acc3 = _acc3;
+            });
+
 
             token1 = await networkClientWrapper.createFT({
                 name: "MyToken",
@@ -101,12 +109,12 @@ describe("get_pending_airdrops", () => {
                     sender_id: string;
                     token_id: string;
                 }[] = // @ts-expect-error -- type from sendPrompt doesn't include availableAirdrops
-                response[response.length - 1]?.content?.availableAirdrops as {
-                    amount: number;
-                    receiver_id: string;
-                    sender_id: string;
-                    token_id: string;
-                }[];
+                  response[response.length - 1]?.content?.availableAirdrops as {
+                      amount: number;
+                      receiver_id: string;
+                      sender_id: string;
+                      token_id: string;
+                  }[];
 
                 if (!airdrops.length) {
                     throw new Error(
