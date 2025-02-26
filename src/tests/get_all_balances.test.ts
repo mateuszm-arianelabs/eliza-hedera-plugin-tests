@@ -102,25 +102,25 @@ describe("get_all_balances", () => {
 
     describe("balance checks", () => {
         it("should test all token balances", async () => {
-            for (const [accountId, promptText] of testCases) {
+            await testCases.reduce(async (promise, [accountId, promptText]) => {
+                await promise;
+
                 const prompt: ElizaOSPrompt = {
                     user: "user",
                     text: promptText,
                 };
 
                 const response = await elizaOsApiClient.sendPrompt(prompt);
-                const allTokensBalances =
-                    await hederaApiClient.getAllTokensBalances(accountId);
+                const allTokensBalances = await hederaApiClient.getAllTokensBalances(accountId);
 
-                let parsedAllTokensBalances: string = "";
-                for (const balance of allTokensBalances) {
-                    parsedAllTokensBalances += `${balance.tokenName}: ${balance.balanceInDisplayUnit} ${balance.tokenSymbol} (${balance.tokenId})\n`;
-                }
+                const parsedAllTokensBalances = allTokensBalances
+                    .map(balance => `${balance.tokenName}: ${balance.balanceInDisplayUnit} ${balance.tokenSymbol} (${balance.tokenId})`)
+                    .join('\n');
 
                 expect(response[1].text).toContain(parsedAllTokensBalances);
 
                 await wait(1000);
-            }
+            }, Promise.resolve());
         });
     });
 });

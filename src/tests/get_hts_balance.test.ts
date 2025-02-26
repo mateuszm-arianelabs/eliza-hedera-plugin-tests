@@ -107,7 +107,9 @@ describe("get_hbar_balance", () => {
 
     describe("balance checks", () => {
         it("should test dynamic token balances", async () => {
-            for (const [accountId, tokenId, promptText] of testCases) {
+            await testCases.reduce(async (promise, [accountId, tokenId, promptText]) => {
+                await promise;
+
                 const prompt: ElizaOSPrompt = {
                     user: "user",
                     text: promptText,
@@ -116,10 +118,7 @@ describe("get_hbar_balance", () => {
                 const response = await elizaOsApiClient.sendPrompt(prompt);
                 let hederaActionBalance: number;
 
-                const match =
-                    response[response.length - 1].text.match(
-                        /equal (\d+(\.\d+)?)/
-                    );
+                const match = response[response.length - 1].text.match(/equal (\d+(\.\d+)?)/);
 
                 if (match) {
                     hederaActionBalance = parseFloat(match[1]);
@@ -137,7 +136,7 @@ describe("get_hbar_balance", () => {
                 expect(hederaActionBalance).toEqual(mirrorNodeBalance);
 
                 await wait(1000);
-            }
+            }, Promise.resolve());
         });
     });
 });

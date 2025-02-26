@@ -51,7 +51,9 @@ describe("get_hbar_balance", () => {
 
     describe("balance checks", () => {
         it("should test dynamic account balances", async () => {
-            for (const [accountId, promptText] of testCases) {
+            await testCases.reduce(async (promise, [accountId, promptText]) => {
+                await promise;
+
                 const prompt: ElizaOSPrompt = {
                     user: "user",
                     text: promptText,
@@ -72,13 +74,12 @@ describe("get_hbar_balance", () => {
                     );
                 }
 
-                const mirrorNodeBalance =
-                    await hederaApiClient.getHbarBalance(accountId);
+                const mirrorNodeBalance = await hederaApiClient.getHbarBalance(accountId);
 
                 expect(hederaActionBalance).toEqual(mirrorNodeBalance);
 
                 await wait(1000);
-            }
+            }, Promise.resolve());
         });
     });
 });

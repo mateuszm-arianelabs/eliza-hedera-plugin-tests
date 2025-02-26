@@ -60,27 +60,22 @@ describe("Test HBAR transfer", async () => {
 
     describe("balance checks", () => {
         it("should test dynamic HBAR transfers", async () => {
-            for (const [
-                receiversAccountId,
-                transferAmount,
-                promptText,
-            ] of testCases) {
+            await testCases.reduce(async (promise, [receiversAccountId, transferAmount, promptText]) => {
+                await promise;
+
                 const agentsAccountId = process.env.HEDERA_ACCOUNT_ID;
 
-                if (
-                    !agentsAccountId ||
-                    receiversAccountId === agentsAccountId
-                ) {
+                if (!agentsAccountId || receiversAccountId === agentsAccountId) {
                     throw new Error(
                         "Env file must be defined and matching the env of running ElizaOs instance! Note that transfers can be done to the operator account address."
                     );
                 }
 
                 // Get balances before
-                const balanceAgentBefore =
-                    await hederaApiClient.getHbarBalance(agentsAccountId);
-                const balanceReceiverBefore =
-                    await hederaApiClient.getHbarBalance(receiversAccountId);
+                const [balanceAgentBefore, balanceReceiverBefore] = await Promise.all([
+                    hederaApiClient.getHbarBalance(agentsAccountId),
+                    hederaApiClient.getHbarBalance(receiversAccountId)
+                ]);
 
                 // Perform transfer action
                 const prompt: ElizaOSPrompt = {
@@ -106,10 +101,11 @@ describe("Test HBAR transfer", async () => {
                 // Get balances after transaction being successfully processed by mirror node
                 await wait(5000);
 
-                const balanceAgentAfter =
-                    await hederaApiClient.getHbarBalance(agentsAccountId);
-                const balanceReceiverAfter =
-                    await hederaApiClient.getHbarBalance(receiversAccountId);
+                const [balanceAgentAfter, balanceReceiverAfter] = await Promise.all([
+                    hederaApiClient.getHbarBalance(agentsAccountId),
+                    hederaApiClient.getHbarBalance(receiversAccountId)
+                ]);
+
                 const txReport = await hederaApiClient.getTransactionReport(
                     txHash,
                     agentsAccountId,
@@ -119,16 +115,16 @@ describe("Test HBAR transfer", async () => {
                 // Compare before and after including the difference due to paid fees
                 expect(txReport.status).toEqual("SUCCESS");
                 expect(balanceAgentBefore).toBeCloseTo(
-                    balanceAgentAfter + transferAmount + txReport.totalPaidFees,
+                    Number(balanceAgentAfter) + transferAmount + txReport.totalPaidFees,
                     8
                 );
                 expect(balanceReceiverBefore).toBeCloseTo(
-                    balanceReceiverAfter - transferAmount,
+                    Number(balanceReceiverAfter) - transferAmount,
                     8
                 );
 
                 await wait(1000);
-            }
+            }, Promise.resolve());
         });
     });
 });

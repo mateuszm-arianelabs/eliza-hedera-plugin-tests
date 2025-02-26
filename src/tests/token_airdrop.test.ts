@@ -105,38 +105,31 @@ describe("Test Token Airdrop", async () => {
 
     describe("token airdrops", () => {
         it("should process airdrop for dynamically created accounts", async () => {
-            for (const [
-                receiversAccountsIds,
-                transferAmount,
-                tokenId,
-                promptText,
-            ] of testCases) {
+            await testCases.reduce(async (promise, [receiversAccountsIds, transferAmount, tokenId, promptText]) => {
+                await promise;
+
                 const agentsAccountId = process.env.HEDERA_ACCOUNT_ID;
 
-                if (
-                    !agentsAccountId ||
-                    receiversAccountsIds.find((id) => id === agentsAccountId)
-                ) {
+                if (!agentsAccountId || receiversAccountsIds.find((id) => id === agentsAccountId)) {
                     throw new Error(
                         "Env file must be defined and matching the env of running ElizaOs instance! Note that airdrops cannot be done to the operator account address."
                     );
                 }
 
                 // Get balances before
-                const balanceAgentBefore =
-                    await hederaApiClient.getTokenBalance(
-                        agentsAccountId,
-                        tokenId
-                    );
+                const balanceAgentBefore = await hederaApiClient.getTokenBalance(
+                    agentsAccountId,
+                    tokenId
+                );
 
-                const balancesOfReceiversBefore = new Map<string, number>();
-                for (const id of receiversAccountsIds) {
-                    const balance = await hederaApiClient.getTokenBalance(
-                        id,
-                        tokenId
-                    );
-                    balancesOfReceiversBefore.set(id, balance);
-                }
+                const balancesOfReceiversBefore = new Map<string, number>(
+                    await Promise.all(
+                        receiversAccountsIds.map(async (id): Promise<[string, number]> => [
+                            id,
+                            await hederaApiClient.getTokenBalance(id, tokenId)
+                        ])
+                    )
+                );
 
                 const prompt: ElizaOSPrompt = {
                     user: "user",
@@ -168,16 +161,10 @@ describe("Test Token Airdrop", async () => {
 
                 const balancesOfReceiversAfter = new Map<string, number>(
                     await Promise.all(
-                        receiversAccountsIds.map(
-                            async (id): Promise<[string, number]> => {
-                                const balance =
-                                    await hederaApiClient.getTokenBalance(
-                                        id,
-                                        tokenId
-                                    );
-                                return [id, balance];
-                            }
-                        )
+                        receiversAccountsIds.map(async (id): Promise<[string, number]> => [
+                            id,
+                            await hederaApiClient.getTokenBalance(id, tokenId)
+                        ])
                     )
                 );
 
@@ -190,17 +177,16 @@ describe("Test Token Airdrop", async () => {
                 // Compare before and after including the difference due to paid fees
                 expect(txReport.status).toEqual("SUCCESS");
                 expect(balanceAgentBefore).toEqual(
-                    balanceAgentAfter +
-                        transferAmount * receiversAccountsIds.length
+                    Number(balanceAgentAfter) + transferAmount * receiversAccountsIds.length
                 );
                 receiversAccountsIds.forEach((id) =>
                     expect(balancesOfReceiversBefore.get(id)).toEqual(
-                        balancesOfReceiversAfter.get(id)! - transferAmount
+                        Number(balancesOfReceiversAfter.get(id)!) - transferAmount
                     )
                 );
 
                 await wait(1000);
-            }
+            }, Promise.resolve());
         });
     });
 });
