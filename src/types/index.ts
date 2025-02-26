@@ -1,3 +1,5 @@
+import BigNumber from "bignumber.js";
+
 export type ElizaOSPrompt = {
     user: string;
     text: string;
@@ -163,4 +165,28 @@ export type HtsTokenDetails = {
     treasury_account_id: string;
     type: "FUNGIBLE_COMMON" | "NON_FUNGIBLE_UNIQUE";
     wipe_key: ProtobufEncodedKey;
+};
+
+export type DetailedTokenBalance = {
+    tokenId: string;
+    tokenSymbol: string;
+    tokenName: string;
+    tokenDecimals: string;
+    balance: number;
+    balanceInDisplayUnit: BigNumber;
+};
+
+export type AllTokensBalancesApiResponse = {
+    timestamp: string;
+    balances: {
+        account: string; // Account ID in the format "0.0.x"
+        balance: number; // Total balance equivalent in HBAR
+        tokens: {
+            token_id: string; // Token ID in the format "0.0.x"
+            balance: number; // Balance of the specific token
+        }[];
+    }[];
+    links: {
+        next: string | null; // link to next page
+    };
 };

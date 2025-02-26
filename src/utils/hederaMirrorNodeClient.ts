@@ -1,12 +1,15 @@
 import {
     AccountsResponse,
+    AllTokensBalancesApiResponse,
+    DetailedTokenBalance,
     HTSBalanceResponse,
     HtsTokenDetails,
     NetworkType,
     TransactionsResponse,
     txReport,
 } from "../types";
-import { formBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
+import BigNumber from "bignumber.js";
+import { fromBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
 
 export class HederaMirrorNodeClient {
     private baseUrl: string;
@@ -45,7 +48,7 @@ export class HederaMirrorNodeClient {
         const decimals = parsedResponse?.balances[0]?.decimals;
 
         const balanceInDisplayUnit = parsedResponse?.balances[0]
-            ? formBaseToDisplayUnit(rawBalance, decimals)
+            ? fromBaseToDisplayUnit(rawBalance, decimals)
             : 0;
 
         console.log(
@@ -58,7 +61,7 @@ export class HederaMirrorNodeClient {
     async getTransactionReport(
         transactionId: string,
         senderId: string,
-        receiverId: string
+        receiversId: string[]
     ): Promise<txReport> {
         const url = `${this.baseUrl}/transactions/${transactionId}`;
         console.log(`URL: ${url}`);
@@ -74,7 +77,11 @@ export class HederaMirrorNodeClient {
         const result: TransactionsResponse = await response.json();
 
         const totalFees = result.transactions[0].transfers
-            .filter((t) => t.account !== senderId && t.account !== receiverId)
+            .filter(
+                (t) =>
+                    t.account !== senderId &&
+                    !receiversId.find((r) => r === t.account)
+            )
             .reduce((sum, t) => sum + t.amount, 0);
 
         const status = result.transactions[0].result;
@@ -98,5 +105,57 @@ export class HederaMirrorNodeClient {
 
         const response = await fetch(url, { method: "GET" });
         return response.json();
+    }
+
+    async getAllTokensBalances(
+        accountId: string
+    ): Promise<Array<DetailedTokenBalance>> {
+        let url: string | null =
+            `${this.baseUrl}/balances?account.id=${accountId}`;
+        const array = new Array<DetailedTokenBalance>();
+
+        console.log(`URL: ${url}`);
+
+        try {
+            while (url) {
+                // Results are paginated
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data: AllTokensBalancesApiResponse =
+                    await response.json();
+
+                for (const token of data.balances[0]?.tokens || []) {
+                    const tokenDetails: HtsTokenDetails =
+                        await this.getTokenDetails(token.token_id);
+
+                    const detailedTokenBalance: DetailedTokenBalance = {
+                        balance: token.balance,
+                        tokenDecimals: tokenDetails.decimals,
+                        tokenId: token.token_id,
+                        tokenName: tokenDetails.name,
+                        tokenSymbol: tokenDetails.symbol,
+                        balanceInDisplayUnit: BigNumber(
+                            fromBaseToDisplayUnit(
+                                token.balance,
+                                +tokenDetails.decimals
+                            )
+                        ),
+                    };
+                    array.push(detailedTokenBalance);
+                }
+
+                // Update URL for pagination
+                url = data.links.next;
+            }
+
+            return array;
+        } catch (error) {
+            console.error("Failed to fetch token balances. Error:", error);
+            throw error;
+        }
     }
 }

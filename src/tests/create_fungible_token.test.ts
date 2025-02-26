@@ -3,7 +3,7 @@ import { ElizaOSApiClient } from "../utils/elizaApiClient";
 import { ElizaOSPrompt } from "../types";
 import { HederaMirrorNodeClient } from "../utils/hederaMirrorNodeClient";
 import * as dotenv from "dotenv";
-import { formDisplayToBaseUnit } from "../utils/utils";
+import { fromDisplayToBaseUnit } from "../utils/utils";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -50,7 +50,7 @@ describe("create_fungible_token", () => {
         expect(tokenDetails.name).toEqual("GameGold");
         expect(tokenDetails.decimals).toEqual("2");
         expect(tokenDetails.initial_supply).toEqual(
-            formDisplayToBaseUnit(750000, 2).toString()
+            fromDisplayToBaseUnit(750000, 2).toString()
         );
         expect(tokenDetails.memo).toEqual("This is an example memo");
         expect(atob(tokenDetails.metadata!)).toEqual(
@@ -86,7 +86,7 @@ describe("create_fungible_token", () => {
         expect(tokenDetails.name).toEqual("Minimal Token");
         expect(tokenDetails.decimals).toEqual("3");
         expect(tokenDetails.initial_supply).toEqual(
-            formDisplayToBaseUnit(333, 3).toString()
+            fromDisplayToBaseUnit(333, 3).toString()
         );
         expect(tokenDetails.memo).toBe("");
         expect(tokenDetails.metadata).toBe("");
@@ -120,7 +120,7 @@ describe("create_fungible_token", () => {
         expect(tokenDetails.name).toEqual("Minimal Plus Memo Token");
         expect(tokenDetails.decimals).toEqual("4");
         expect(tokenDetails.initial_supply).toEqual(
-            formDisplayToBaseUnit(444, 4).toString()
+            fromDisplayToBaseUnit(444, 4).toString()
         );
         expect(tokenDetails.memo).toEqual("Automatic tests memo");
         expect(tokenDetails.metadata).toBe("");
@@ -154,7 +154,7 @@ describe("create_fungible_token", () => {
         expect(tokenDetails.name).toEqual("Minimal Plus Metadata Key Token");
         expect(tokenDetails.decimals).toEqual("5");
         expect(tokenDetails.initial_supply).toEqual(
-            formDisplayToBaseUnit(555, 5).toString()
+            fromDisplayToBaseUnit(555, 5).toString()
         );
         expect(tokenDetails.memo).toBe("");
         expect(tokenDetails.metadata).toBe("");
@@ -190,7 +190,7 @@ describe("create_fungible_token", () => {
         );
         expect(tokenDetails.decimals).toEqual("1");
         expect(tokenDetails.initial_supply).toEqual(
-            formDisplayToBaseUnit(111, 1).toString()
+            fromDisplayToBaseUnit(111, 1).toString()
         );
         expect(tokenDetails.memo).toBe("");
         expect(tokenDetails.memo).toBe("");
@@ -224,7 +224,7 @@ describe("create_fungible_token", () => {
         expect(tokenDetails.name).toEqual("Complex Token");
         expect(tokenDetails.decimals).toEqual("1");
         expect(tokenDetails.initial_supply).toEqual(
-            formDisplayToBaseUnit(1111, 1).toString()
+            fromDisplayToBaseUnit(1111, 1).toString()
         );
         expect(tokenDetails.memo).toBe("This a complex token");
         expect(atob(tokenDetails.metadata!)).toBe(
