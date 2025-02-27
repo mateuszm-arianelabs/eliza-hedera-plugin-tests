@@ -9,6 +9,7 @@ import {
     txReport,
     PendingAirdropsResponse,
     PendingAirdrop,
+    Account,
 } from "../types";
 import BigNumber from "bignumber.js";
 import { fromBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
@@ -186,5 +187,16 @@ export class HederaMirrorNodeClient {
             console.error("Failed to fetch pending airdrops. Error:", error);
             throw error;
         }
+    }
+
+    async getAccountInfo(accountId: string): Promise<Account> {
+        console.log(`Getting account info for ${accountId}`);
+        const url = `${this.baseUrl}/accounts?account.id=${accountId}&limit=1&order=desc`;
+
+        console.log(`URL: ${url}`);
+
+        const response = await fetch(url, { method: "GET" });
+        const parsedResponse: AccountsResponse = await response.json();
+        return parsedResponse.accounts[0];
     }
 }
