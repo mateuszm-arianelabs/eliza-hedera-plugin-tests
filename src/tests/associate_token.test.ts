@@ -9,7 +9,7 @@ import { HederaMirrorNodeClient } from "../utils/hederaMirrorNodeClient";
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 dotenv.config();
-describe("claim_airdrop", () => {
+describe("associate_token", () => {
     let tokenCreatorAccount: AccountData;
     let token1: string;
     let token2: string;
