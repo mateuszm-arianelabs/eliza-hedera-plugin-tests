@@ -10,6 +10,7 @@ import { AccountData, hederaPrivateKeyFromString } from "./testnetUtils";
 import {
     AirdropResult,
     CreateFTOptions,
+    CreateTopicResult,
     HederaAgentKit,
     HederaNetworkType,
 } from "hedera-agent-kit";
@@ -98,5 +99,12 @@ export class NetworkClientWrapper {
 
     getAccountId(): string {
         return this.accountId.toString();
+    }
+
+    createTopic(
+        topicMemo: string,
+        submitKey: boolean
+    ): Promise<CreateTopicResult> {
+        return this.agentKit.createTopic(topicMemo, submitKey);
     }
 }

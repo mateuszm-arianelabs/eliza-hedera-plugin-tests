@@ -9,6 +9,9 @@ import {
     txReport,
     PendingAirdropsResponse,
     PendingAirdrop,
+    Topic,
+    TopicMessagesResponse,
+    MirrorNodeTopicMessage,
 } from "../types";
 import BigNumber from "bignumber.js";
 import { fromBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
@@ -184,6 +187,57 @@ export class HederaMirrorNodeClient {
             return allAirdrops;
         } catch (error) {
             console.error("Failed to fetch pending airdrops. Error:", error);
+            throw error;
+        }
+    }
+
+    async getTopic(topicId: string): Promise<Topic> {
+        const url = `${this.baseUrl}/topics/${topicId}`;
+        console.log(`URL: ${url}`);
+
+        try {
+            const response = await fetch(url, { method: "GET" });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log("Topic data:", data);
+            return data;
+        } catch (error) {
+            console.error(`Failed to fetch topic ${topicId}. Error:`, error);
+            throw error;
+        }
+    }
+
+    async getTopicMessages(topicId: string): Promise<MirrorNodeTopicMessage[]> {
+        let url: string | null = `${this.baseUrl}/topics/${topicId}/messages`;
+        const allMessages: MirrorNodeTopicMessage[] = [];
+
+        console.log(`URL: ${url}`);
+
+        try {
+            while (url) {
+                const response = await fetch(url, { method: "GET" });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data: TopicMessagesResponse = await response.json();
+                allMessages.push(...data.messages);
+
+                // Update URL for pagination
+                url = data.links.next ? `${this.baseUrl.replace('/api/v1', '')}${data.links.next}` : null;
+            }
+
+            return allMessages;
+        } catch (error) {
+            console.error(
+                `Failed to get topic messages for ${topicId}. Error:`,
+                error
+            );
             throw error;
         }
     }
