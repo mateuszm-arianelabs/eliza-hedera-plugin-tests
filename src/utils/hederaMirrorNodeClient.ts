@@ -7,6 +7,8 @@ import {
     NetworkType,
     TransactionsResponse,
     txReport,
+    PendingAirdropsResponse,
+    PendingAirdrop,
 } from "../types";
 import BigNumber from "bignumber.js";
 import { fromBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
@@ -155,6 +157,33 @@ export class HederaMirrorNodeClient {
             return array;
         } catch (error) {
             console.error("Failed to fetch token balances. Error:", error);
+            throw error;
+        }
+    }
+
+    async getPendingAirdrops(accountId: string): Promise<PendingAirdrop[]> {
+        let url: string | null = `${this.baseUrl}/accounts/${accountId}/pending-airdrops`;
+        const allAirdrops: PendingAirdrop[] = [];
+
+        console.log(`URL: ${url}`);
+
+        try {
+            while (url) {
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data: PendingAirdropsResponse = await response.json();
+                allAirdrops.push(...data.airdrops);
+
+                url = data.links.next;
+            }
+
+            return allAirdrops;
+        } catch (error) {
+            console.error("Failed to fetch pending airdrops. Error:", error);
             throw error;
         }
     }

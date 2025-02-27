@@ -1,0 +1,132 @@
+import { describe, expect, it, beforeAll } from "vitest";
+import { ElizaOSApiClient } from "../utils/elizaApiClient";
+import { ElizaOSPrompt } from "../types";
+import * as dotenv from "dotenv";
+import { NetworkClientWrapper } from "../utils/testnetClient";
+import { AccountData } from "../utils/testnetUtils";
+
+describe("get_list_of_token_holders", () => {
+    let acc1: AccountData;
+    let acc2: AccountData;
+    let acc3: AccountData;
+    let token1: string;
+    let token2: string;
+    let elizaOsApiClient: ElizaOSApiClient;
+    let testCases: {
+        promptText: string;
+        holders: { accountId: string; balance: number }[];
+    }[];
+    let networkClientWrapper: NetworkClientWrapper;
+
+    beforeAll(async () => {
+        dotenv.config();
+        try {
+            networkClientWrapper = new NetworkClientWrapper(
+                process.env.HEDERA_ACCOUNT_ID!,
+                process.env.HEDERA_PRIVATE_KEY!,
+                process.env.HEDERA_KEY_TYPE!,
+                "testnet"
+            );
+
+            await Promise.all([
+                networkClientWrapper.createAccount(0, -1),
+                networkClientWrapper.createAccount(0, -1),
+                networkClientWrapper.createAccount(0, -1),
+            ]).then(([account1, account2, account3]) => {
+                acc1 = account1;
+                acc2 = account2;
+                acc3 = account3;
+            });
+
+            await Promise.all([
+                networkClientWrapper.createFT({
+                    name: "MyToken1",
+                    symbol: "MTK1",
+                    initialSupply: 1000,
+                    decimals: 2,
+                }),
+                networkClientWrapper.createFT({
+                    name: "MyToken2",
+                    symbol: "MTK2",
+                    initialSupply: 1000,
+                    decimals: 2,
+                }),
+            ]).then(([t1, t2]) => {
+                token1 = t1;
+                token2 = t2;
+            });
+
+            await Promise.all([
+                networkClientWrapper.transferToken(acc1.accountId, token1, 10),
+                networkClientWrapper.transferToken(acc2.accountId, token1, 20),
+                networkClientWrapper.transferToken(acc3.accountId, token1, 30),
+                networkClientWrapper.transferToken(acc1.accountId, token2, 40),
+                networkClientWrapper.transferToken(acc2.accountId, token2, 50),
+                networkClientWrapper.transferToken(acc3.accountId, token2, 60),
+            ]);
+
+            elizaOsApiClient = new ElizaOSApiClient(
+                `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
+            );
+            await elizaOsApiClient.setup();
+
+            testCases = [
+                {
+                    holders: [
+                        { accountId: acc1.accountId, balance: 10 },
+                        { accountId: acc2.accountId, balance: 20 },
+                        { accountId: acc3.accountId, balance: 30 },
+                        {
+                            accountId: networkClientWrapper.getAccountId(),
+                            balance: 940,
+                        },
+                    ],
+                    promptText: `Who owns token ${token1} and what are their balances?`,
+                },
+                {
+                    holders: [
+                        { accountId: acc1.accountId, balance: 40 },
+                        { accountId: acc2.accountId, balance: 50 },
+                        { accountId: acc3.accountId, balance: 60 },
+                        {
+                            accountId: networkClientWrapper.getAccountId(),
+                            balance: 850,
+                        },
+                    ],
+                    promptText: `Who owns token ${token2} and what are their balances?`,
+                },
+            ];
+        } catch (error) {
+            console.error("Error in setup:", error);
+            throw error;
+        }
+    });
+
+    describe("pending airdrops checks", () => {
+        it("should test dynamic pending airdrops", async () => {
+            for (const { promptText, holders } of testCases) {
+                const prompt: ElizaOSPrompt = {
+                    user: "user",
+                    text: promptText,
+                };
+
+                const response = await elizaOsApiClient.sendPrompt(prompt);
+                const lastMessage =
+                    // @ts-expect-error -- type from sendPrompt doesn't include holdersArray
+                    response[response.length - 1].content.holdersArray as {
+                        account: string;
+                        balance: number;
+                        decimals: number;
+                    }[];
+
+                lastMessage.forEach((holder) => {
+                    const relevantHolder = holders.find(
+                        (h) => h.accountId === holder.account
+                    );
+                    expect(relevantHolder?.balance).toEqual(holder.balance);
+                    expect(relevantHolder?.accountId).toEqual(holder.account);
+                });
+            }
+        });
+    });
+});
