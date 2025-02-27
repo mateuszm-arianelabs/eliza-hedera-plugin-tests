@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { ElizaOSApiClient } from "../utils/elizaApiClient";
 import { ElizaOSPrompt } from "../types";
 import * as dotenv from "dotenv";
@@ -13,7 +13,8 @@ describe("claim_airdrop", () => {
     let airdropCreatorAccount: AccountData;
     let token1: string;
     let token2: string;
-    const elizaClientAccountId = process.env.HEDERA_ACCOUNT_ID!;
+    let networkClientWrapper: NetworkClientWrapper;
+    let claimerInitialMaxAutoAssociation: number;
     let elizaOsApiClient: ElizaOSApiClient;
     let testCases: {
         receiverAccountId: string;
@@ -33,17 +34,7 @@ describe("claim_airdrop", () => {
                     | "previewnet"
             );
 
-            const accountInfo =
-                await hederaMirrorNodeClient.getAccountInfo(
-                    elizaClientAccountId
-                );
-
-            if (accountInfo.max_automatic_token_associations !== 0) {
-                // test will be skipped so setup will not be executed
-                return;
-            }
-
-            const networkClientWrapper = new NetworkClientWrapper(
+            networkClientWrapper = new NetworkClientWrapper(
                 process.env.HEDERA_ACCOUNT_ID!,
                 process.env.HEDERA_PRIVATE_KEY!,
                 process.env.HEDERA_KEY_TYPE!,
@@ -53,6 +44,21 @@ describe("claim_airdrop", () => {
             airdropCreatorAccount = await networkClientWrapper.createAccount(
                 15,
                 0
+            );
+
+            claimerInitialMaxAutoAssociation = (
+                await hederaMirrorNodeClient.getAccountInfo(
+                    networkClientWrapper.getAccountId()
+                )
+            ).max_automatic_token_associations;
+
+            const maxAutoAssociationForTest =
+                await hederaMirrorNodeClient.getAllAssociations(
+                    networkClientWrapper.getAccountId()
+                );
+
+            await networkClientWrapper.setMaxAutoAssociation(
+                maxAutoAssociationForTest
             );
 
             const airdropCreatorAccountNetworkClientWrapper =
@@ -103,14 +109,14 @@ describe("claim_airdrop", () => {
 
             testCases = [
                 {
-                    receiverAccountId: elizaClientAccountId,
+                    receiverAccountId: networkClientWrapper.getAccountId(),
                     senderAccountId: airdropCreatorAccount.accountId,
                     tokenId: token1,
                     promptText: `Claim airdrop for token ${token1} from sender ${airdropCreatorAccount.accountId}`,
                     expectedClaimedAmount: 10,
                 },
                 {
-                    receiverAccountId: elizaClientAccountId,
+                    receiverAccountId: networkClientWrapper.getAccountId(),
                     senderAccountId: airdropCreatorAccount.accountId,
                     tokenId: token2,
                     promptText: `Claim airdrop for token ${token2} from sender ${airdropCreatorAccount.accountId}`,
@@ -123,14 +129,14 @@ describe("claim_airdrop", () => {
         }
     });
 
+    afterAll(async () => {
+        await networkClientWrapper.setMaxAutoAssociation(
+            claimerInitialMaxAutoAssociation
+        );
+    });
+
     describe("claim airdrop checks", () => {
-        it.runIf(async () => {
-            const accountInfo =
-                await hederaMirrorNodeClient.getAccountInfo(
-                    elizaClientAccountId
-                );
-            return accountInfo.max_automatic_token_associations === 0;
-        })("should claim airdrop", async () => {
+        it("should claim airdrop", async () => {
             for (const {
                 receiverAccountId,
                 tokenId,
@@ -145,16 +151,12 @@ describe("claim_airdrop", () => {
                 await elizaOsApiClient.sendPrompt(prompt);
                 await wait(5000);
 
-                const receiverAccountInfo =
-                    await hederaMirrorNodeClient.getAccountInfo(
-                        receiverAccountId
-                    );
-                const actualClaimedAmount =
-                    receiverAccountInfo.balance.tokens.find(
-                        (t) => t.token_id === tokenId
-                    )?.balance;
+                const tokenInfo = await hederaMirrorNodeClient.getAccountToken(
+                    receiverAccountId,
+                    tokenId
+                );
 
-                expect(actualClaimedAmount).toBe(expectedClaimedAmount);
+                expect(tokenInfo?.balance ?? 0).toBe(expectedClaimedAmount);
             }
         });
     });

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { ElizaOSApiClient } from "../utils/elizaApiClient";
 import { ElizaOSPrompt } from "../types";
 import * as dotenv from "dotenv";
@@ -13,7 +13,8 @@ describe("claim_airdrop", () => {
     let tokenCreatorAccount: AccountData;
     let token1: string;
     let token2: string;
-    const elizaClientAccountId = process.env.HEDERA_ACCOUNT_ID!;
+    let networkClientWrapper: NetworkClientWrapper;
+    let claimerInitialMaxAutoAssociation: number;
     let elizaOsApiClient: ElizaOSApiClient;
     let testCases: {
         tokenToAssociateId: string;
@@ -30,17 +31,7 @@ describe("claim_airdrop", () => {
                     | "previewnet"
             );
 
-            const accountInfo =
-                await hederaMirrorNodeClient.getAccountInfo(
-                    elizaClientAccountId
-                );
-
-            if (accountInfo.max_automatic_token_associations !== 0) {
-                // test will be skipped so setup will not be executed
-                return;
-            }
-
-            const networkClientWrapper = new NetworkClientWrapper(
+            networkClientWrapper = new NetworkClientWrapper(
                 process.env.HEDERA_ACCOUNT_ID!,
                 process.env.HEDERA_PRIVATE_KEY!,
                 process.env.HEDERA_KEY_TYPE!,
@@ -50,6 +41,21 @@ describe("claim_airdrop", () => {
             tokenCreatorAccount = await networkClientWrapper.createAccount(
                 15,
                 0
+            );
+
+            claimerInitialMaxAutoAssociation = (
+                await hederaMirrorNodeClient.getAccountInfo(
+                    networkClientWrapper.getAccountId()
+                )
+            ).max_automatic_token_associations;
+
+            const maxAutoAssociationForTest =
+                await hederaMirrorNodeClient.getAllAssociations(
+                    networkClientWrapper.getAccountId()
+                );
+
+            await networkClientWrapper.setMaxAutoAssociation(
+                maxAutoAssociationForTest
             );
 
             const tokenCreatorAccountNetworkClientWrapper =
@@ -86,11 +92,11 @@ describe("claim_airdrop", () => {
             testCases = [
                 {
                     tokenToAssociateId: token1,
-                    promptText: `Associate token ${token1} to account ${elizaClientAccountId}`,
+                    promptText: `Associate token ${token1} to account ${networkClientWrapper.getAccountId()}`,
                 },
                 {
                     tokenToAssociateId: token2,
-                    promptText: `Associate token ${token2} to account ${elizaClientAccountId}`,
+                    promptText: `Associate token ${token2} to account ${networkClientWrapper.getAccountId()}`,
                 },
             ];
         } catch (error) {
@@ -99,14 +105,14 @@ describe("claim_airdrop", () => {
         }
     });
 
+    afterAll(async () => {
+        await networkClientWrapper.setMaxAutoAssociation(
+            claimerInitialMaxAutoAssociation
+        );
+    });
+
     describe("associate token checks", () => {
-        it.runIf(async () => {
-            const accountInfo =
-                await hederaMirrorNodeClient.getAccountInfo(
-                    elizaClientAccountId
-                );
-            return accountInfo.max_automatic_token_associations === 0;
-        })("should associate token", async () => {
+        it("should associate token", async () => {
             for (const { promptText, tokenToAssociateId } of testCases || []) {
                 const prompt: ElizaOSPrompt = {
                     user: "user",
@@ -114,10 +120,10 @@ describe("claim_airdrop", () => {
                 };
 
                 await elizaOsApiClient.sendPrompt(prompt);
-                await wait(15000);
+                await wait(5000);
 
                 const token = await hederaMirrorNodeClient.getAccountToken(
-                    elizaClientAccountId,
+                    networkClientWrapper.getAccountId(),
                     tokenToAssociateId
                 );
 

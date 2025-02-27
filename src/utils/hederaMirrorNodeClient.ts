@@ -165,7 +165,8 @@ export class HederaMirrorNodeClient {
     }
 
     async getPendingAirdrops(accountId: string): Promise<PendingAirdrop[]> {
-        let url: string | null = `${this.baseUrl}/accounts/${accountId}/pending-airdrops`;
+        let url: string | null =
+            `${this.baseUrl}/accounts/${accountId}/pending-airdrops`;
         const allAirdrops: PendingAirdrop[] = [];
 
         console.log(`URL: ${url}`);
@@ -216,5 +217,39 @@ export class HederaMirrorNodeClient {
         const data: AccountTokensResponse = await response.json();
 
         return data.tokens[0];
+    }
+
+    async getAccountTokens(accountId: string): Promise<AccountToken[]> {
+        const allTokens: AccountToken[] = [];
+        let nextLink: string | null =
+            `${this.baseUrl}/accounts/${accountId}/tokens?&limit=100&order=desc`;
+
+        while (nextLink) {
+            const response = await fetch(nextLink);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data: AccountTokensResponse = await response.json();
+            allTokens.push(...data.tokens);
+
+            nextLink = data.links?.next
+                ? `${this.baseUrl.replace("/api/v1", "")}${data.links?.next}`
+                : null;
+        }
+
+        return allTokens;
+    }
+
+    async getAllAssociations(accountId: string): Promise<number> {
+        const allTokens = await this.getAccountTokens(accountId);
+
+        return allTokens.reduce((acc, currentToken) => {
+            if (currentToken.automatic_association) {
+                acc += 1;
+            }
+            return acc;
+        }, 0);
     }
 }
