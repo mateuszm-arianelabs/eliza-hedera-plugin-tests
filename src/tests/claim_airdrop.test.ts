@@ -53,7 +53,7 @@ describe("claim_airdrop", () => {
             ).max_automatic_token_associations;
 
             const maxAutoAssociationForTest =
-                await hederaMirrorNodeClient.getAllAssociations(
+                await hederaMirrorNodeClient.getAutomaticAssociationsCount(
                     networkClientWrapper.getAccountId()
                 );
 

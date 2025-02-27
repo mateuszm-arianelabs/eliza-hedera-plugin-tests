@@ -50,7 +50,7 @@ describe("claim_airdrop", () => {
             ).max_automatic_token_associations;
 
             const maxAutoAssociationForTest =
-                await hederaMirrorNodeClient.getAllAssociations(
+                await hederaMirrorNodeClient.getAutomaticAssociationsCount(
                     networkClientWrapper.getAccountId()
                 );
 
@@ -106,9 +106,11 @@ describe("claim_airdrop", () => {
     });
 
     afterAll(async () => {
-        await networkClientWrapper.setMaxAutoAssociation(
-            claimerInitialMaxAutoAssociation
-        );
+        if (claimerInitialMaxAutoAssociation === -1) {
+            await networkClientWrapper.setMaxAutoAssociation(
+                claimerInitialMaxAutoAssociation
+            );
+        }
     });
 
     describe("associate token checks", () => {

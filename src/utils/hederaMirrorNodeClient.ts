@@ -242,7 +242,7 @@ export class HederaMirrorNodeClient {
         return allTokens;
     }
 
-    async getAllAssociations(accountId: string): Promise<number> {
+    async getAutomaticAssociationsCount(accountId: string): Promise<number> {
         const allTokens = await this.getAccountTokens(accountId);
 
         return allTokens.reduce((acc, currentToken) => {
