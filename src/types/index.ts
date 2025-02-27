@@ -208,4 +208,19 @@ export type PendingAirdropsResponse = {
     links: {
         next: string | null;
     };
-}; 
+};
+
+export type AccountToken = {
+    automatic_association: boolean;
+    balance: number;
+    created_timestamp: string;
+    decimals: number;
+    token_id: string;
+};
+
+export type AccountTokensResponse = {
+    tokens: AccountToken[];
+    links: {
+        next: string | null;
+    };
+};

@@ -10,17 +10,14 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 dotenv.config();
 describe("claim_airdrop", () => {
-    let airdropCreatorAccount: AccountData;
+    let tokenCreatorAccount: AccountData;
     let token1: string;
     let token2: string;
     const elizaClientAccountId = process.env.HEDERA_ACCOUNT_ID!;
     let elizaOsApiClient: ElizaOSApiClient;
     let testCases: {
-        receiverAccountId: string;
-        senderAccountId: string;
-        tokenId: string;
+        tokenToAssociateId: string;
         promptText: string;
-        expectedClaimedAmount: number;
     }[];
     let hederaMirrorNodeClient: HederaMirrorNodeClient;
 
@@ -50,29 +47,29 @@ describe("claim_airdrop", () => {
                 "testnet"
             );
 
-            airdropCreatorAccount = await networkClientWrapper.createAccount(
+            tokenCreatorAccount = await networkClientWrapper.createAccount(
                 15,
                 0
             );
 
-            const airdropCreatorAccountNetworkClientWrapper =
+            const tokenCreatorAccountNetworkClientWrapper =
                 new NetworkClientWrapper(
-                    airdropCreatorAccount.accountId,
-                    airdropCreatorAccount.privateKey,
+                    tokenCreatorAccount.accountId,
+                    tokenCreatorAccount.privateKey,
                     "ECDSA",
                     "testnet"
                 );
 
             await Promise.all([
-                airdropCreatorAccountNetworkClientWrapper.createFT({
-                    name: "ClaimAirdrop1",
-                    symbol: "CA1",
+                tokenCreatorAccountNetworkClientWrapper.createFT({
+                    name: "TokenToAssociate1",
+                    symbol: "TTA1",
                     initialSupply: 1000,
                     decimals: 2,
                 }),
-                airdropCreatorAccountNetworkClientWrapper.createFT({
-                    name: "ClaimAirdrop2",
-                    symbol: "CA2",
+                tokenCreatorAccountNetworkClientWrapper.createFT({
+                    name: "TokenToAssociate2",
+                    symbol: "TTA2",
                     initialSupply: 1000,
                     decimals: 2,
                 }),
@@ -81,21 +78,6 @@ describe("claim_airdrop", () => {
                 token2 = _token2;
             });
 
-            await Promise.all([
-                airdropCreatorAccountNetworkClientWrapper.airdropToken(token1, [
-                    {
-                        accountId: process.env.HEDERA_ACCOUNT_ID!,
-                        amount: 10,
-                    },
-                ]),
-                airdropCreatorAccountNetworkClientWrapper.airdropToken(token2, [
-                    {
-                        accountId: process.env.HEDERA_ACCOUNT_ID!,
-                        amount: 40,
-                    },
-                ]),
-            ]);
-
             elizaOsApiClient = new ElizaOSApiClient(
                 `http://${process.env.ELIZAOS_REST_HOSTNAME}:${process.env.ELIZAOS_REST_PORT}`
             );
@@ -103,18 +85,12 @@ describe("claim_airdrop", () => {
 
             testCases = [
                 {
-                    receiverAccountId: elizaClientAccountId,
-                    senderAccountId: airdropCreatorAccount.accountId,
-                    tokenId: token1,
-                    promptText: `Claim airdrop for token ${token1} from sender ${airdropCreatorAccount.accountId}`,
-                    expectedClaimedAmount: 10,
+                    tokenToAssociateId: token1,
+                    promptText: `Associate token ${token1} to account ${elizaClientAccountId}`,
                 },
                 {
-                    receiverAccountId: elizaClientAccountId,
-                    senderAccountId: airdropCreatorAccount.accountId,
-                    tokenId: token2,
-                    promptText: `Claim airdrop for token ${token2} from sender ${airdropCreatorAccount.accountId}`,
-                    expectedClaimedAmount: 40,
+                    tokenToAssociateId: token2,
+                    promptText: `Associate token ${token2} to account ${elizaClientAccountId}`,
                 },
             ];
         } catch (error) {
@@ -123,38 +99,29 @@ describe("claim_airdrop", () => {
         }
     });
 
-    describe("claim airdrop checks", () => {
+    describe("associate token checks", () => {
         it.runIf(async () => {
             const accountInfo =
                 await hederaMirrorNodeClient.getAccountInfo(
                     elizaClientAccountId
                 );
             return accountInfo.max_automatic_token_associations === 0;
-        })("should claim airdrop", async () => {
-            for (const {
-                receiverAccountId,
-                tokenId,
-                promptText,
-                expectedClaimedAmount,
-            } of testCases || []) {
+        })("should associate token", async () => {
+            for (const { promptText, tokenToAssociateId } of testCases || []) {
                 const prompt: ElizaOSPrompt = {
                     user: "user",
                     text: promptText,
                 };
 
                 await elizaOsApiClient.sendPrompt(prompt);
-                await wait(5000);
+                await wait(15000);
 
-                const receiverAccountInfo =
-                    await hederaMirrorNodeClient.getAccountInfo(
-                        receiverAccountId
-                    );
-                const actualClaimedAmount =
-                    receiverAccountInfo.balance.tokens.find(
-                        (t) => t.token_id === tokenId
-                    )?.balance;
+                const token = await hederaMirrorNodeClient.getAccountToken(
+                    elizaClientAccountId,
+                    tokenToAssociateId
+                );
 
-                expect(actualClaimedAmount).toBe(expectedClaimedAmount);
+                expect(token).toBeDefined();
             }
         });
     });

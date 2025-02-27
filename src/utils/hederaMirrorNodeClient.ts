@@ -10,6 +10,8 @@ import {
     PendingAirdropsResponse,
     PendingAirdrop,
     Account,
+    AccountTokensResponse,
+    AccountToken,
 } from "../types";
 import BigNumber from "bignumber.js";
 import { fromBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
@@ -198,5 +200,21 @@ export class HederaMirrorNodeClient {
         const response = await fetch(url, { method: "GET" });
         const parsedResponse: AccountsResponse = await response.json();
         return parsedResponse.accounts[0];
+    }
+
+    async getAccountToken(
+        accountId: string,
+        tokenId: string
+    ): Promise<AccountToken | undefined> {
+        const url = `${this.baseUrl}/accounts/${accountId}/tokens?token.id=${tokenId}&limit=1&order=desc`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: AccountTokensResponse = await response.json();
+
+        return data.tokens[0];
     }
 }
