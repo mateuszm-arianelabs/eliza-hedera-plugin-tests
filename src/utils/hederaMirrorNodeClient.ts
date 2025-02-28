@@ -242,6 +242,8 @@ export class HederaMirrorNodeClient {
         let nextLink: string | null =
             `${this.baseUrl}/accounts/${accountId}/tokens?&limit=100&order=desc`;
 
+        console.log(`URL: ${nextLink}`);
+
         while (nextLink) {
             const response = await fetch(nextLink);
 
