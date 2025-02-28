@@ -118,4 +118,8 @@ export class NetworkClientWrapper {
     ): Promise<CreateTopicResult> {
         return this.agentKit.createTopic(topicMemo, submitKey);
     }
+    
+    associateToken(tokenId: string) {
+        return this.agentKit.associateToken(TokenId.fromString(tokenId));
+    }
 }
