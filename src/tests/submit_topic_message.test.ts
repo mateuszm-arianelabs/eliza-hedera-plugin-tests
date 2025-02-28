@@ -8,7 +8,7 @@ import { HederaMirrorNodeClient } from "../utils/hederaMirrorNodeClient";
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 dotenv.config();
-describe("get_pending_airdrops", () => {
+describe("submit_topic_message", () => {
     let topic1: string;
     let topic2: string;
     let topic3: string;
@@ -69,8 +69,8 @@ describe("get_pending_airdrops", () => {
         }
     });
 
-    describe("pending airdrops checks", () => {
-        it("should test dynamic pending airdrops", async () => {
+    describe("submit topic message checks", () => {
+        it("should submit message to topic", async () => {
             for (const { textPrompt, topicId, message } of testCases) {
                 const prompt: ElizaOSPrompt = {
                     user: "user",
