@@ -5,6 +5,10 @@ import * as dotenv from "dotenv";
 import { NetworkClientWrapper } from "../utils/testnetClient";
 import { AccountData } from "../utils/testnetUtils";
 
+interface TestCase {
+    promptText: string;
+    holders: { accountId: string; balance: number }[];
+}
 describe("get_list_of_token_holders", () => {
     let acc1: AccountData;
     let acc2: AccountData;
@@ -12,10 +16,8 @@ describe("get_list_of_token_holders", () => {
     let token1: string;
     let token2: string;
     let elizaOsApiClient: ElizaOSApiClient;
-    let testCases: {
-        promptText: string;
-        holders: { accountId: string; balance: number }[];
-    }[];
+    let testCases: TestCase[];
+    let tresholdTestCases: TestCase[];
     let networkClientWrapper: NetworkClientWrapper;
 
     beforeAll(async () => {
@@ -96,14 +98,37 @@ describe("get_list_of_token_holders", () => {
                     promptText: `Who owns token ${token2} and what are their balances?`,
                 },
             ];
+
+            tresholdTestCases = [
+                {
+                    holders: [
+                        { accountId: acc3.accountId, balance: 30 },
+                        {
+                            accountId: networkClientWrapper.getAccountId(),
+                            balance: 940,
+                        },
+                    ],
+                    promptText: `Which wallets hold token ${token1} and have at least 30 tokens?`,
+                },
+                {
+                    holders: [
+                        { accountId: acc3.accountId, balance: 60 },
+                        {
+                            accountId: networkClientWrapper.getAccountId(),
+                            balance: 850,
+                        },
+                    ],
+                    promptText: `Show me the token holders for ${token2} with balances greater or equal 60.`,
+                },
+            ];
         } catch (error) {
             console.error("Error in setup:", error);
             throw error;
         }
     });
 
-    describe("pending airdrops checks", () => {
-        it("should test dynamic pending airdrops", async () => {
+    describe("get list of token holders checks", () => {
+        it("should get list of token holders", async () => {
             for (const { promptText, holders } of testCases) {
                 const prompt: ElizaOSPrompt = {
                     user: "user",
@@ -118,6 +143,36 @@ describe("get_list_of_token_holders", () => {
                         balance: number;
                         decimals: number;
                     }[];
+
+                expect(lastMessage.length).toBe(holders.length);
+
+                lastMessage.forEach((holder) => {
+                    const relevantHolder = holders.find(
+                        (h) => h.accountId === holder.account
+                    );
+                    expect(relevantHolder?.balance).toEqual(holder.balance);
+                    expect(relevantHolder?.accountId).toEqual(holder.account);
+                });
+            }
+        });
+
+        it("should get list of token holders with treshold", async () => {
+            for (const { promptText, holders } of tresholdTestCases) {
+                const prompt: ElizaOSPrompt = {
+                    user: "user",
+                    text: promptText,
+                };
+
+                const response = await elizaOsApiClient.sendPrompt(prompt);
+                const lastMessage =
+                    // @ts-expect-error -- type from sendPrompt doesn't include holdersArray
+                    response[response.length - 1].content.holdersArray as {
+                        account: string;
+                        balance: number;
+                        decimals: number;
+                    }[];
+
+                expect(lastMessage.length).toBe(holders.length);
 
                 lastMessage.forEach((holder) => {
                     const relevantHolder = holders.find(
