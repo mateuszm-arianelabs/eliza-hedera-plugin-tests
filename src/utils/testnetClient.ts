@@ -1,6 +1,7 @@
 import {
     AccountCreateTransaction,
     AccountId,
+    AccountUpdateTransaction,
     Client,
     Hbar,
     PrivateKey,
@@ -15,7 +16,6 @@ import {
     HederaNetworkType,
 } from "hedera-agent-kit";
 import { AirdropRecipient } from "hedera-agent-kit/dist/tools/hts/transactions/airdrop";
-
 export class NetworkClientWrapper {
     private readonly accountId: AccountId;
     private readonly privateKey: PrivateKey;
@@ -68,6 +68,17 @@ export class NetworkClientWrapper {
             accountId: accountId!.toString(),
             privateKey: accountPrivateKey.toStringRaw(),
         };
+    }
+
+    async setMaxAutoAssociation(
+        maxAutoAssociation: number
+    ): Promise<void> {
+        const tx = new AccountUpdateTransaction()
+            .setAccountId(this.accountId)
+            .setMaxAutomaticTokenAssociations(maxAutoAssociation)
+            .freezeWith(this.client);
+        const txResponse = await tx.execute(this.client);
+        await txResponse.getReceipt(this.client);
     }
 
     async createFT(options: CreateFTOptions): Promise<string> {
