@@ -9,6 +9,9 @@ import {
     txReport,
     PendingAirdropsResponse,
     PendingAirdrop,
+    Account,
+    AccountTokensResponse,
+    AccountToken,
 } from "../types";
 import BigNumber from "bignumber.js";
 import { fromBaseToDisplayUnit, fromTinybarToHbar } from "./utils";
@@ -162,7 +165,8 @@ export class HederaMirrorNodeClient {
     }
 
     async getPendingAirdrops(accountId: string): Promise<PendingAirdrop[]> {
-        let url: string | null = `${this.baseUrl}/accounts/${accountId}/pending-airdrops`;
+        let url: string | null =
+            `${this.baseUrl}/accounts/${accountId}/pending-airdrops`;
         const allAirdrops: PendingAirdrop[] = [];
 
         console.log(`URL: ${url}`);
@@ -186,5 +190,66 @@ export class HederaMirrorNodeClient {
             console.error("Failed to fetch pending airdrops. Error:", error);
             throw error;
         }
+    }
+
+    async getAccountInfo(accountId: string): Promise<Account> {
+        console.log(`Getting account info for ${accountId}`);
+        const url = `${this.baseUrl}/accounts?account.id=${accountId}&limit=1&order=desc`;
+
+        console.log(`URL: ${url}`);
+
+        const response = await fetch(url, { method: "GET" });
+        const parsedResponse: AccountsResponse = await response.json();
+        return parsedResponse.accounts[0];
+    }
+
+    async getAccountToken(
+        accountId: string,
+        tokenId: string
+    ): Promise<AccountToken | undefined> {
+        const url = `${this.baseUrl}/accounts/${accountId}/tokens?token.id=${tokenId}&limit=1&order=desc`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: AccountTokensResponse = await response.json();
+
+        return data.tokens[0];
+    }
+
+    async getAccountTokens(accountId: string): Promise<AccountToken[]> {
+        const allTokens: AccountToken[] = [];
+        let nextLink: string | null =
+            `${this.baseUrl}/accounts/${accountId}/tokens?&limit=100&order=desc`;
+
+        while (nextLink) {
+            const response = await fetch(nextLink);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data: AccountTokensResponse = await response.json();
+            allTokens.push(...data.tokens);
+
+            nextLink = data.links?.next
+                ? `${this.baseUrl.replace("/api/v1", "")}${data.links?.next}`
+                : null;
+        }
+
+        return allTokens;
+    }
+
+    async getAutomaticAssociationsCount(accountId: string): Promise<number> {
+        const allTokens = await this.getAccountTokens(accountId);
+
+        return allTokens.reduce((acc, currentToken) => {
+            if (currentToken.automatic_association) {
+                acc += 1;
+            }
+            return acc;
+        }, 0);
     }
 }
