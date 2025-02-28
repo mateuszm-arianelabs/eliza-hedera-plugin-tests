@@ -210,6 +210,52 @@ export type PendingAirdropsResponse = {
     };
 };
 
+type TopicKey = {
+    _type: string;
+    key: string;
+};
+
+type TopicTimestamp = {
+    from: string;
+    to: string | null;
+};
+
+export type Topic = {
+    admin_key: TopicKey;
+    auto_renew_account: string | null;
+    auto_renew_period: number;
+    created_timestamp: string;
+    deleted: boolean;
+    memo: string;
+    submit_key: TopicKey;
+    timestamp: TopicTimestamp;
+    topic_id: string;
+};
+
+export type TopicMessageChunkInfo = {
+    initial_transaction_id: string;
+    number: number;
+    total: number;
+};
+
+export type MirrorNodeTopicMessage = {
+    chunk_info: TopicMessageChunkInfo;
+    consensus_timestamp: string;
+    message: string;
+    payer_account_id: string;
+    running_hash: string;
+    running_hash_version: number;
+    sequence_number: number;
+    topic_id: string;
+};
+
+export type TopicMessagesResponse = {
+    messages: MirrorNodeTopicMessage[];
+    links: {
+        next: string | null;
+    };
+}
+
 export type AccountToken = {
     automatic_association: boolean;
     balance: number;

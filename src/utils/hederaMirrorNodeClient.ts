@@ -9,6 +9,9 @@ import {
     txReport,
     PendingAirdropsResponse,
     PendingAirdrop,
+    Topic,
+    TopicMessagesResponse,
+    MirrorNodeTopicMessage,
     Account,
     AccountTokensResponse,
     AccountToken,
@@ -192,6 +195,21 @@ export class HederaMirrorNodeClient {
         }
     }
 
+    async getTopic(topicId: string): Promise<Topic> {
+        const url = `${this.baseUrl}/topics/${topicId}`;
+        console.log(`URL: ${url}`);
+
+        try {
+            const response = await fetch(url, { method: "GET" });
+            const data = await response.json();
+            console.log("Topic data:", data);
+            return data;
+        } catch (error) {
+            console.error(`Failed to fetch topic ${topicId}. Error:`, error);
+            throw error;
+        }
+    }
+
     async getAccountInfo(accountId: string): Promise<Account> {
         console.log(`Getting account info for ${accountId}`);
         const url = `${this.baseUrl}/accounts?account.id=${accountId}&limit=1&order=desc`;
@@ -230,7 +248,6 @@ export class HederaMirrorNodeClient {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
             const data: AccountTokensResponse = await response.json();
             allTokens.push(...data.tokens);
 
@@ -251,5 +268,38 @@ export class HederaMirrorNodeClient {
             }
             return acc;
         }, 0);
+    }
+
+    async getTopicMessages(topicId: string): Promise<MirrorNodeTopicMessage[]> {
+        let url: string | null = `${this.baseUrl}/topics/${topicId}/messages`;
+        const allMessages: MirrorNodeTopicMessage[] = [];
+
+        console.log(`URL: ${url}`);
+
+        try {
+            while (url) {
+                const response = await fetch(url, { method: "GET" });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data: TopicMessagesResponse = await response.json();
+                allMessages.push(...data.messages);
+
+                // Update URL for pagination
+                url = data.links.next
+                    ? `${this.baseUrl.replace("/api/v1", "")}${data.links.next}`
+                    : null;
+            }
+
+            return allMessages;
+        } catch (error) {
+            console.error(
+                `Failed to get topic messages for ${topicId}. Error:`,
+                error
+            );
+            throw error;
+        }
     }
 }
